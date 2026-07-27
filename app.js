@@ -16,12 +16,12 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '4.0.0';
-  const BUILD_DATE = '2026-07-27';
+  const APP_VERSION = '5.0.0';
+  const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
   const defaultState = () => ({
-    version: 4,
+    version: 5,
     nodes: [],
     relations: [],
     frames: [],
@@ -89,7 +89,7 @@
   function normalizeState(data={}){
     const base=defaultState();
     return {
-      ...base, ...data, version:4, selected:null,
+      ...base, ...data, version:5, selected:null,
       nodes:(data.nodes||[]).map(normalizeNode),
       relations:(data.relations||[]).map(normalizeRelation),
       frames:(data.frames||[]).map(f=>({id:f.id||uid('f'),x:Number(f.x??420),y:Number(f.y??240),width:Number(f.width??560),height:Number(f.height??360),label:f.label||'同住／家庭範圍',dashed:!!f.dashed,rounded:f.rounded!==false})),
@@ -269,7 +269,7 @@
     selectionLayer.innerHTML = '';
 
     state.frames.forEach(drawFrame);
-    state.relations.forEach(drawRelation);
+    drawAllRelations();
     state.nodes.forEach(drawNode);
     state.texts.forEach(drawText);
     drawMetaLayer();
@@ -370,6 +370,21 @@
     if(r.routing==='manual'&&Array.isArray(r.points)&&r.points.length) return compactRoute([p1,...r.points,p2]);
     return autoRoute(p1,p2,excludeIds);
   }
+  function partnerRoutePoints(r,a,b,p1,p2){
+    if(r.routing==='manual'&&Array.isArray(r.points)&&r.points.length)return compactRoute([p1,...r.points,p2]);
+    const obstacles=getObstacleRects([a.id,b.id]);
+    const direct=compactRoute([p1,p2]);
+    if(routeScore(direct,obstacles)<100000)return direct;
+    // 多次婚配時以同世代附近的平行線繞過中間配偶，避免路線跑到整張圖的最上／最下方。
+    const up=a.y-72,down=a.y+72;
+    const candidates=[
+      compactRoute([p1,{x:p1.x,y:up},{x:p2.x,y:up},p2]),
+      compactRoute([p1,{x:p1.x,y:down},{x:p2.x,y:down},p2]),
+      compactRoute([p1,{x:p1.x,y:a.y-108},{x:p2.x,y:a.y-108},p2]),
+      compactRoute([p1,{x:p1.x,y:a.y+108},{x:p2.x,y:a.y+108},p2])
+    ];
+    return candidates.sort((x,y)=>routeScore(x,obstacles)-routeScore(y,obstacles))[0];
+  }
   const routePathD=points=>points.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
   function pointOnRoute(points,t=.5){
     const segs=[];let total=0;
@@ -382,25 +397,125 @@
     return {...points[0],angle:0};
   }
 
+  function drawAllRelations(){
+    // 先畫伴侶與情感關係，再畫由婚姻線中點向下延伸的親子結構線。
+    state.relations.filter(r=>r.type!=='parent').forEach(drawRelation);
+    drawParentFamilyConnections();
+  }
+
+  function findPartnerRelation(aId,bId){
+    return state.relations.find(r=>r.type==='partner'&&((r.from===aId&&r.to===bId)||(r.from===bId&&r.to===aId)));
+  }
+
+  function partnerUnionAnchor(a,b){
+    const relation=findPartnerRelation(a.id,b.id);
+    if(!relation) return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const p1=nodeEdgePoint(a,b),p2=nodeEdgePoint(b,a);
+    const route=partnerRoutePoints(relation,a,b,p1,p2);
+    const anchor=pointOnRoute(route,.5);
+    return {x:anchor.x,y:anchor.y};
+  }
+
+  function birthOrderScore(n){
+    const name=n?.name||'';
+    const map=[['長',1],['大',1],['次',2],['二',2],['三',3],['四',4],['五',5],['六',6],['七',7],['八',8],['九',9],['么',10]];
+    for(const [key,value] of map){if(name.startsWith(key))return value;}
+    const age=Number(n?.age);
+    return Number.isFinite(age)&&age>0 ? 100-age/1000 : 500;
+  }
+
+  function parentFamilyGroups(){
+    const byChild=new Map();
+    state.relations.filter(r=>r.type==='parent').forEach(r=>{
+      if(!byChild.has(r.to))byChild.set(r.to,[]);
+      byChild.get(r.to).push(r);
+    });
+    const groups=new Map();
+    byChild.forEach((rels,childId)=>{
+      const child=getNode(childId);if(!child)return;
+      const uniqueParents=[...new Set(rels.map(r=>r.from))].map(getNode).filter(Boolean);
+      if(!uniqueParents.length)return;
+      // 超過兩名法定／照顧父母時，優先採有伴侶關係的一組；其餘關係仍保留於資料中。
+      let parents=uniqueParents.slice(0,2);
+      if(uniqueParents.length>2){
+        outer:for(let i=0;i<uniqueParents.length;i++)for(let j=i+1;j<uniqueParents.length;j++){
+          if(findPartnerRelation(uniqueParents[i].id,uniqueParents[j].id)){parents=[uniqueParents[i],uniqueParents[j]];break outer;}
+        }
+      }
+      parents.sort((a,b)=>a.id.localeCompare(b.id));
+      const key=parents.map(p=>p.id).join('|');
+      if(!groups.has(key))groups.set(key,{key,parents,children:[]});
+      const relevant=rels.filter(r=>parents.some(p=>p.id===r.from));
+      groups.get(key).children.push({node:child,relations:relevant});
+    });
+    return [...groups.values()];
+  }
+
+  function familyLineStyle(childInfo){
+    const subtype=childInfo.relations.find(r=>r.subtype&&r.subtype!=='biological')?.subtype||'biological';
+    return {subtype,dash:subtype==='adopted'?'9 6':subtype==='foster'?'3 6':''};
+  }
+
+  function relationClickableGroup(id){
+    const g=svgEl('g',{'data-kind':'relation','data-id':id});
+    g.addEventListener('click',selectFromEvent);
+    return g;
+  }
+
+  function drawParentFamilyConnections(){
+    parentFamilyGroups().forEach(group=>{
+      const children=[...group.children].sort((a,b)=>birthOrderScore(a.node)-birthOrderScore(b.node)||Number(b.node.age||0)-Number(a.node.age||0)||a.node.x-b.node.x);
+      if(!children.length)return;
+      const parents=group.parents;
+      let source;
+      if(parents.length>=2) source=partnerUnionAnchor(parents[0],parents[1]);
+      else source={x:parents[0].x,y:parents[0].y+parents[0].size/2+2};
+      const endpoints=children.map(c=>({x:c.node.x,y:c.node.y-c.node.size/2-2,info:c}));
+      const nearestTop=Math.min(...endpoints.map(p=>p.y));
+      const available=Math.max(90,nearestTop-source.y);
+      const rawSiblingY=Math.min(nearestTop-52,source.y+Math.max(62,available*.46));
+      const siblingY=isGridEnabled()?snapValue(rawSiblingY):rawSiblingY;
+      const representative=children[0].relations[0];
+      if(!representative)return;
+
+      // 共同主幹與手足線：父母婚姻線中點向下，手足由左至右排列。
+      if(endpoints.length>1){
+        const shared=relationClickableGroup(representative.id);
+        const minX=Math.min(source.x,...endpoints.map(p=>p.x));
+        const maxX=Math.max(source.x,...endpoints.map(p=>p.x));
+        const sharedD=`M ${source.x} ${source.y} V ${siblingY} M ${minX} ${siblingY} H ${maxX}`;
+        shared.appendChild(svgEl('path',{d:sharedD,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-linejoin':'round'}));
+        shared.appendChild(svgEl('path',{d:sharedD,fill:'none',stroke:'transparent','stroke-width':20}));
+        relationLayer.appendChild(shared);
+      }
+
+      endpoints.forEach((p,index)=>{
+        const representativeRel=p.info.relations[0]||representative;
+        const style=familyLineStyle(p.info);
+        const branch=relationClickableGroup(representativeRel.id);
+        const d=endpoints.length===1
+          ? (Math.abs(p.x-source.x)<1?`M ${source.x} ${source.y} V ${p.y}`:`M ${source.x} ${source.y} V ${siblingY} H ${p.x} V ${p.y}`)
+          : `M ${p.x} ${siblingY} V ${p.y}`;
+        branch.appendChild(svgEl('path',{d,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':style.dash,'stroke-linejoin':'round'}));
+        branch.appendChild(svgEl('path',{d,fill:'none',stroke:'transparent','stroke-width':20}));
+        const branchLabel=representativeRel.label||(style.subtype==='adopted'?'收養':style.subtype==='foster'?'寄養':'');
+        if(branchLabel){
+          const label=svgEl('text',{x:p.x+10,y:(siblingY+p.y)/2,'font-size':14,fill:'#111'});
+          label.textContent=branchLabel;branch.appendChild(label);
+        }
+        relationLayer.appendChild(branch);
+      });
+    });
+  }
+
   function drawRelation(r){
+    if(r.type==='parent')return;
     const a=getNode(r.from),b=getNode(r.to);if(!a||!b)return;
     const g=svgEl('g',{'data-kind':'relation','data-id':r.id});
-    let p1=nodeEdgePoint(a,b),p2=nodeEdgePoint(b,a),route=relationRoutePoints(r,p1,p2,[a.id,b.id]);
+    let p1=nodeEdgePoint(a,b),p2=nodeEdgePoint(b,a),route=r.type==='partner'?partnerRoutePoints(r,a,b,p1,p2):relationRoutePoints(r,p1,p2,[a.id,b.id]);
     let path=null,hitD=routePathD(route);
 
-    if(r.type==='parent'){
-      const coParentRels=state.relations.filter(x=>x.type==='parent'&&x.to===r.to&&x.from!==r.from);
-      const paired=coParentRels.find(x=>state.relations.some(pr=>pr.type==='partner'&&((pr.from===r.from&&pr.to===x.from)||(pr.to===r.from&&pr.from===x.from))));
-      const dash=r.subtype==='adopted'?'9 6':r.subtype==='foster'?'3 6':'';
-      if(paired){
-        const canonical=[r,paired].sort((x,y)=>x.id.localeCompare(y.id))[0];if(canonical.id!==r.id)return;
-        const other=getNode(paired.from);if(!other)return;
-        const source={x:(a.x+other.x)/2,y:(a.y+other.y)/2};
-        const target=nodeEdgePoint(b,source);
-        route=relationRoutePoints(r,source,target,[a.id,other.id,b.id]);hitD=routePathD(route);
-      }
-      path=svgEl('path',{d:hitD,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':dash,'stroke-linejoin':'round'});
-    }else if(r.type==='twins'){
+    if(r.type==='twins'){
       const apex={x:(p1.x+p2.x)/2,y:Math.min(p1.y,p2.y)-55};
       const d1=`M ${apex.x} ${apex.y} L ${p1.x} ${p1.y}`,d2=`M ${apex.x} ${apex.y} L ${p2.x} ${p2.y}`;
       g.append(svgEl('path',{d:d1,fill:'none',stroke:'#111','stroke-width':2.2}),svgEl('path',{d:d2,fill:'none',stroke:'#111','stroke-width':2.2}));
@@ -433,7 +548,7 @@
       }
     }
     if(path)g.prepend(path);
-    const subtypeLabels={adopted:'收養',foster:'寄養',identical:'同卵',fraternal:'異卵',unknownTwins:'類型未明',physical:'身體暴力',emotional:'精神暴力',sexual:'性暴力',economic:'經濟控制',neglect:'疏忽／遺棄',otherAbuse:'其他暴力'};
+    const subtypeLabels={identical:'同卵',fraternal:'異卵',unknownTwins:'類型未明',physical:'身體暴力',emotional:'精神暴力',sexual:'性暴力',economic:'經濟控制',neglect:'疏忽／遺棄',otherAbuse:'其他暴力'};
     const visibleLabel=r.label||subtypeLabels[r.subtype]||'';
     if(visibleLabel){const mid=pointOnRoute(route,.5);const txt=svgEl('text',{x:mid.x,y:mid.y-12,'font-size':15,'text-anchor':'middle',fill:r.type==='abuse'?'#b42318':'#111','font-weight':r.type==='abuse'?700:400});txt.textContent=visibleLabel;g.appendChild(txt);}
     g.appendChild(svgEl('path',{d:hitD,fill:'none',stroke:'transparent','stroke-width':22,'stroke-linejoin':'round'}));
@@ -569,7 +684,7 @@
       }
     }
     if(kind==='relation'){
-      const r=getRelation(id);if(!r)return;
+      const r=getRelation(id);if(!r||r.type==='parent')return;
       (r.points||[]).forEach((p,index)=>{
         const handle=svgEl('circle',{cx:p.x,cy:p.y,r:8,fill:'#fff',stroke:'#355b7d','stroke-width':3,class:'route-point-handle','data-relation-point':id,'data-point-index':index});
         handle.addEventListener('pointerdown',startRelationPointDrag);selectionLayer.appendChild(handle);
@@ -578,7 +693,7 @@
   }
 
 
-  function redrawRelationsOnly(){relationLayer.innerHTML='';state.relations.forEach(drawRelation);}
+  function redrawRelationsOnly(){relationLayer.innerHTML='';drawAllRelations();}
   function redrawMetaOnly(){metaLayer.innerHTML='';drawMetaLayer();}
   function redrawSelectionOnly(){selectionLayer.innerHTML='';drawSelection();}
   function replaceLayerItem(layer,kind,id,drawer,obj){
@@ -763,11 +878,11 @@
         ${hasSubtype?`<div class="field"><label>關係細類</label><select data-k="subtype">${relationSubtypeOptions(r.type,r.subtype)}</select></div>`:''}
         <div class="field"><label>標籤</label><input data-k="label" value="${esc(r.label)}" placeholder="例如：主要照顧"/></div>
         <div class="hint">起點：${esc(nodeLabel(getNode(r.from)||{}))}<br>終點：${esc(nodeLabel(getNode(r.to)||{}))}${r.type==='abuse'?'<br><strong>施暴關係的起點為施暴者，終點為受暴者。</strong>':''}</div>
-        <div class="route-tools">
+        ${r.type==='parent'?`<div class="route-tools"><div class="setting-line"><strong style="font-size:12px">親子結構線</strong><span class="setting-value">社工標準排列</span></div><div class="hint">親子線會自動由父母婚姻線中點向下，連到同胞手足線；請使用「依社工原則排列」調整整體位置。</div></div>`:`<div class="route-tools">
           <div class="setting-line"><strong style="font-size:12px">線路控制</strong><span class="setting-value">${r.routing==='manual'?'手動轉折':'自動避障'}</span></div>
           <div class="row wrap"><button class="btn small" type="button" data-add-route-point>新增轉折點</button><button class="btn small" type="button" data-remove-route-point ${!(r.points||[]).length?'disabled':''}>移除最後轉折</button><button class="btn small" type="button" data-reset-route>恢復自動路由</button></div>
           <div class="hint">選取關係線後，畫布上的藍色圓點可拖曳調整折彎位置。</div>
-        </div>
+        </div>`}
         <div class="inspector-actions"><button class="btn danger" data-delete>刪除此關係</button></div>
       </div>`;
     bindInspector(r,'relation');
@@ -888,7 +1003,7 @@
   function marriageSegments(body,count){
     const result=[];for(let i=1;i<=count;i++){
       const chars=['一','二','三','四','五','六','七','八','九','十'],ord=chars[i-1]||String(i);
-      const re=new RegExp(`(?:第${ord}(?:次|任|段)|第${i}(?:次|任|段)|${ord}(?:次|任|段))(?:婚姻|婚配|配偶)?[：:\\s]*([\\s\\S]*?)(?=(?:第[一二三四五六七八九十\\d]+|[一二三四五六七八九十]+)(?:次|任|段)|$)`);const m=body.match(re);result.push(m?m[1]:'');
+      const re=new RegExp(`(?:第${ord}(?:次|任|段)|第${i}(?:次|任|段))(?:婚姻|婚配|配偶)?[：:\\s]*([\\s\\S]*?)(?=(?:第[一二三四五六七八九十\\d]+|[一二三四五六七八九十]+)(?:次|任|段)|$)`);const m=body.match(re);result.push(m?m[1]:'');
     }return result;
   }
   function parseQuickInput(raw){
@@ -934,113 +1049,102 @@
     else{report.textContent=`已辨識 ${parsed.total} 行，建立 ${parsed.nodes.length} 個人物／事件與 ${parsed.relations.length} 條關係。`;report.className='parse-report show';showToast('已產生家系圖，可繼續拖曳與編輯');}
   }
 
-  function autoLayout(withSnapshot=true){
-    if(withSnapshot) snapshot();
-    const nodes=state.nodes;
-    if(!nodes.length) return;
+  function partnerComponentLayout(members,partnerRels){
+    const relationIndex=r=>state.relations.indexOf(r);
+    if(members.length===1)return{width:150,offsets:new Map([[members[0].id,0]])};
+    if(members.length===2){
+      const ordered=[...members].sort((a,b)=>{
+        const rank=n=>n.sex==='male'?0:n.sex==='female'?1:2;
+        return rank(a)-rank(b)||(a.proband?-1:0)-(b.proband?-1:0);
+      });
+      return{width:250,offsets:new Map([[ordered[0].id,-75],[ordered[1].id,75]])};
+    }
+    const degree=id=>partnerRels.filter(r=>r.from===id||r.to===id).length;
+    const focal=[...members].sort((a,b)=>degree(b.id)-degree(a.id)||(b.proband?1:0)-(a.proband?1:0))[0];
+    const linked=partnerRels.filter(r=>r.from===focal.id||r.to===focal.id).sort((a,b)=>relationIndex(a)-relationIndex(b));
+    const partners=linked.map(r=>getNode(r.from===focal.id?r.to:r.from)).filter(n=>n&&members.some(m=>m.id===n.id));
+    members.filter(n=>n.id!==focal.id&&!partners.some(p=>p.id===n.id)).forEach(n=>partners.push(n));
+    const offsets=new Map([[focal.id,0]]);
+    const preferred=focal.sex==='female'?-1:1;
+    partners.forEach((p,i)=>{
+      const sign=i===0?preferred:(i%2===1?-preferred:preferred);
+      const ring=Math.floor(i/2)+1;
+      const distance=150+(ring-1)*175+(i%2===1?20:0);
+      offsets.set(p.id,sign*distance);
+    });
+    const values=[...offsets.values()];
+    return{width:Math.max(290,Math.max(...values)-Math.min(...values)+190),offsets};
+  }
 
+  function autoLayout(withSnapshot=true){
+    if(withSnapshot)snapshot();
+    const nodes=state.nodes;if(!nodes.length)return;
     const partnerRels=state.relations.filter(r=>r.type==='partner');
     const parentRels=state.relations.filter(r=>r.type==='parent');
 
-    // 以伴侶關係建立家庭單位（component）。多次婚配會保留在同一單位中。
-    const parent={};
-    nodes.forEach(n=>parent[n.id]=n.id);
+    // 伴侶視為同一世代；親子關係固定下一世代。
+    const parent={};nodes.forEach(n=>parent[n.id]=n.id);
     const find=id=>parent[id]===id?id:(parent[id]=find(parent[id]));
     const union=(a,b)=>{a=find(a);b=find(b);if(a!==b)parent[b]=a;};
     partnerRels.forEach(r=>union(r.from,r.to));
-
-    const comps=new Map();
-    nodes.forEach(n=>{
-      const root=find(n.id);
-      if(!comps.has(root)) comps.set(root,[]);
-      comps.get(root).push(n);
-    });
+    const comps=new Map();nodes.forEach(n=>{const root=find(n.id);if(!comps.has(root))comps.set(root,[]);comps.get(root).push(n);});
     const compOf=id=>find(id);
-
-    // 家庭單位之間的親子方向，用最長路徑決定世代。
-    const incoming=new Map(), outgoing=new Map();
-    comps.forEach((_,id)=>{incoming.set(id,new Set());outgoing.set(id,new Set());});
-    parentRels.forEach(r=>{
-      const a=compOf(r.from),b=compOf(r.to);
-      if(a!==b){outgoing.get(a).add(b);incoming.get(b).add(a);}
-    });
-
-    const gen=new Map();
+    const incoming=new Map(),outgoing=new Map();comps.forEach((_,id)=>{incoming.set(id,new Set());outgoing.set(id,new Set());});
+    parentRels.forEach(r=>{const a=compOf(r.from),b=compOf(r.to);if(a!==b){outgoing.get(a).add(b);incoming.get(b).add(a);}});
+    const generation=new Map();
     const roots=[...comps.keys()].filter(id=>incoming.get(id).size===0);
-    (roots.length?roots:[...comps.keys()].slice(0,1)).forEach(id=>gen.set(id,0));
+    (roots.length?roots:[...comps.keys()].slice(0,1)).forEach(id=>generation.set(id,0));
     let changed=true,guard=0;
-    while(changed&&guard++<30){
-      changed=false;
-      outgoing.forEach((targets,from)=>{
-        if(!gen.has(from)) return;
-        targets.forEach(to=>{
-          const value=(gen.get(from)||0)+1;
-          if(!gen.has(to)||gen.get(to)<value){gen.set(to,value);changed=true;}
-        });
-      });
-    }
-    comps.forEach((_,id)=>{if(!gen.has(id))gen.set(id,0)});
+    while(changed&&guard++<40){changed=false;outgoing.forEach((targets,from)=>{if(!generation.has(from))return;targets.forEach(to=>{const next=(generation.get(from)||0)+1;if(!generation.has(to)||generation.get(to)<next){generation.set(to,next);changed=true;}});});}
+    comps.forEach((_,id)=>{if(!generation.has(id))generation.set(id,0);});
 
     const rows={};
-    comps.forEach((members,id)=>{const g=gen.get(id)||0;(rows[g] ||= []).push({id,members});});
-
-    // 同世代排序：先依父母所在位置，再依長、次、三、四等出生序。
-    const birthOrder=comp=>{
-      const names=comp.members.map(n=>n.name||'');
-      const map=[['長',1],['次',2],['三',3],['四',4],['五',5],['六',6],['七',7],['八',8],['九',9],['么',10]];
-      for(const [key,value] of map){ if(names.some(n=>n.startsWith(key))) return value; }
-      return 50;
-    };
-    const parentCenter=comp=>{
-      const xs=[];
-      comp.members.forEach(member=>{
-        parentRels.filter(r=>r.to===member.id).forEach(r=>{const p=getNode(r.from);if(p)xs.push(p.x);});
-      });
-      return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;
+    comps.forEach((members,id)=>{const g=generation.get(id)||0;(rows[g]||=[]).push({id,members,layout:partnerComponentLayout(members,partnerRels)});});
+    const compBirthOrder=comp=>Math.min(...comp.members.map(birthOrderScore));
+    const desiredParentCenter=comp=>{
+      const anchors=[];
+      comp.members.forEach(member=>parentRels.filter(r=>r.to===member.id).forEach(r=>{const p=getNode(r.from);if(p)anchors.push(p.x);}));
+      return anchors.length?anchors.reduce((a,b)=>a+b,0)/anchors.length:null;
     };
 
     Object.keys(rows).map(Number).sort((a,b)=>a-b).forEach(g=>{
-      const row=rows[g].sort((a,b)=>{
-        if(g>0){
-          const ax=parentCenter(a),bx=parentCenter(b);
-          if(ax!==null&&bx!==null&&Math.abs(ax-bx)>24) return ax-bx;
-        }
-        const pa=a.members.some(n=>n.proband)?-100:0;
-        const pb=b.members.some(n=>n.proband)?-100:0;
-        return pa-pb || birthOrder(a)-birthOrder(b) || a.members.map(n=>n.name||'').join('').localeCompare(b.members.map(n=>n.name||'').join(''),'zh-Hant');
+      const row=rows[g];
+      row.sort((a,b)=>{
+        const ax=desiredParentCenter(a),bx=desiredParentCenter(b);
+        if(ax!==null&&bx!==null&&Math.abs(ax-bx)>24)return ax-bx;
+        return compBirthOrder(a)-compBirthOrder(b)||a.members.map(n=>n.name||'').join('').localeCompare(b.members.map(n=>n.name||'').join(''),'zh-Hant');
       });
-      const widths=row.map(c=>c.members.length>2?320:c.members.length===2?210:130);
-      const total=widths.reduce((a,b)=>a+b,0)+Math.max(0,row.length-1)*70;
-      let cursor=700-total/2;
-      row.forEach((comp,idx)=>{
-        const width=widths[idx];
-        const center=cursor+width/2;
-        const baseY=150+g*250;
-        const members=comp.members;
-        const degree=id=>partnerRels.filter(r=>r.from===id||r.to===id).length;
-        if(members.length===1){
-          members[0].x=center;members[0].y=baseY;
-        }else if(members.length===2){
-          const ordered=[...members].sort((a,b)=>(b.proband?1:0)-(a.proband?1:0));
-          ordered[0].x=center-70;ordered[1].x=center+70;
-          ordered[0].y=ordered[1].y=baseY;
-        }else{
-          const focal=[...members].sort((a,b)=>degree(b.id)-degree(a.id))[0];
-          const partners=members.filter(n=>n.id!==focal.id).sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh-Hant'));
-          focal.x=center-70;focal.y=baseY;
-          partners.forEach((n,i)=>{
-            n.x=center+100;
-            n.y=baseY+(i-(partners.length-1)/2)*125;
-          });
-        }
-        cursor+=width+70;
+      const gap=90,total=row.reduce((s,c)=>s+c.layout.width,0)+Math.max(0,row.length-1)*gap;
+      const baseY=150+g*270;
+      const centers=[];
+      if(g===0||!row.some(c=>desiredParentCenter(c)!==null)){
+        let cursor=700-total/2;
+        row.forEach(comp=>{centers.push(cursor+comp.layout.width/2);cursor+=comp.layout.width+gap;});
+      }else{
+        let previousRight=-Infinity;
+        row.forEach(comp=>{
+          const desired=desiredParentCenter(comp)??700;
+          const center=Math.max(desired,previousRight+gap+comp.layout.width/2);
+          centers.push(center);previousRight=center+comp.layout.width/2;
+        });
+        const left=Math.min(...centers.map((c,i)=>c-row[i].layout.width/2));
+        const right=Math.max(...centers.map((c,i)=>c+row[i].layout.width/2));
+        let shift=0;
+        if(right>1340)shift=1340-right;
+        if(left+shift<60)shift+=60-(left+shift);
+        for(let i=0;i<centers.length;i++)centers[i]+=shift;
+      }
+      row.forEach((comp,index)=>{
+        const center=centers[index];
+        comp.members.forEach(n=>{n.x=center+(comp.layout.offsets.get(n.id)||0);n.y=baseY;});
       });
     });
 
-    // 同一世代保留固定間距，避免不同家庭單位互相重疊。
-    if(isGridEnabled()) snapAllObjects();
-
+    // 最後強制同世代共用相同 Y 座標，並依網格校正。
+    if(isGridEnabled())snapAllObjects();
+    state.relations.filter(r=>r.type==='parent').forEach(r=>{r.points=[];r.routing='auto';});
     render();persist();
+    if(withSnapshot)showToast('已依同代同列、男左女右、長左幼右及婚姻線中點重新排列');
   }
 
   function clearAll(){

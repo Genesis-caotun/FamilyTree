@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V4.0.0</title>
+<title>家系圖快速製作器 V5.0.0</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,8 +12,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V4.0.0</span></h1>
-        <p>台灣社工實務常見符號｜避障路由｜匿名化匯出｜行動裝置微調｜離線可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.0.0</span></h1>
+        <p>台灣社工家系圖排列｜同代同列｜婚姻線中點連接子女｜匿名化匯出｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -93,7 +93,11 @@
             <div class="hint">啟用後顯示淡色點狀網格；拖曳人物、文字與外框時會自動吸附。</div>
           </div>
           <button class="btn" id="alignAllToGridBtn">將現有物件對齊網格</button>
-          <button class="btn" id="autoLayoutBtn">自動排列世代</button>
+          <button class="btn primary" id="autoLayoutBtn">依社工原則排列</button>
+          <div class="setting-card social-layout-card">
+            <strong>V5 排列規則</strong>
+            <div class="hint">長輩在上、晚輩在下；同一世代固定同一橫排；夫妻男左女右；手足長左幼右；子女由父母婚姻線中點向下連接。</div>
+          </div>
           <div class="setting-card" id="touchSettingCard">
             <label class="check"><input type="checkbox" id="touchLongPress" checked /> 觸控長按後拖曳</label>
             <div class="setting-line"><span class="hint">手機／平板可避免輕觸時誤移動</span><select id="nudgeStep" aria-label="微調距離"><option value="2">微調 2px</option><option value="10">微調 10px</option><option value="20">網格 20px</option></select></div>
@@ -121,7 +125,7 @@
           <div class="legend-item"><span class="relation-swatch red"></span>施暴者 → 受暴者</div>
           <div class="legend-item"><span style="font-weight:800;color:#b42318;font-size:22px">↘</span>高風險／需注意</div>
         </div>
-        <p class="hint">本工具採台灣社工實務常見的家系圖表達方式。不同機構若有內規，請以單位規範為準。</p>
+        <p class="hint">V5 的結構排列採台灣社工實務常見原則：同代同列、長左幼右、夫妻男左女右，親子線由婚姻線中點向下。不同機構若有內規，仍以單位規範為準。</p>
       </section>
 
       <section class="section">
@@ -135,7 +139,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 4.0.0</strong><span>2026-07-27</span><p>新增避障路由與手動轉折點、容錯文字解析、動態匯出範圍、匿名化、局部更新及觸控長按操作。</p></div>
+        <div class="version-card"><strong>版本 5.0.0</strong><span>2026-07-28</span><p>重寫世代排列與親子結構線：同一輩分同一橫排，手足長左幼右，子女由父母婚姻線中點向下連接。</p></div>
       </section>
     </aside>
 
@@ -231,18 +235,16 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V4.0.0</div>
+  <div class="dialog-head">家系圖快速製作器 V5.0.0</div>
   <div class="dialog-body version-dialog-body">
-    <p><strong>發布日期：</strong>2026-07-27</p>
+    <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
-      <li>關係線新增障礙偵測與自動直角路由。</li>
-      <li>關係線可加入、拖曳及刪除手動轉折點。</li>
-      <li>文字解析支援更多角色稱謂、標點與句型，並回報未辨識內容。</li>
-      <li>SVG／PNG 依實際物件範圍動態裁切，避免大量空白或邊緣裁切。</li>
-      <li>一鍵匿名化，可改以 A女、B男代號或完全隱藏姓名。</li>
-      <li>輸入與拖曳採局部圖層更新，提升複雜圖面的操作效能。</li>
-      <li>手機與平板新增長按拖曳、防誤觸及方向微調按鈕。</li>
-      <li>原始碼拆分為 index.html、styles.css 與 app.js。</li>
+      <li>重寫自動排列：所有同一世代人物固定在同一橫排。</li>
+      <li>夫妻／伴侶優先依男左女右排列，多次婚配仍維持同世代水平位置。</li>
+      <li>同胞手足依長幼由左至右排列。</li>
+      <li>親子結構線改由父母婚姻線中點向下，再連接水平手足線與各子女。</li>
+      <li>收養／寄養仍保留虛線分支與標籤。</li>
+      <li>保留 V4 的避障關係線、匿名化、動態匯出、行動裝置微調與離線功能。</li>
     </ul>
   </div>
   <div class="dialog-foot"><button class="btn primary" id="closeVersionBtn">知道了</button></div>
