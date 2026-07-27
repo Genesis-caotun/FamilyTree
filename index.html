@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V2</title>
+<title>家系圖快速製作器 V3</title>
 <style>
   :root{
     --bg:#f4f6f8;
@@ -28,12 +28,16 @@
   .brand h1{font-size:18px;margin:0;white-space:nowrap}
   .brand p{font-size:12px;margin:2px 0 0;color:var(--muted)}
   .header-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
-  .btn{border:1px solid var(--line);background:#fff;color:var(--text);padding:8px 11px;border-radius:9px;font-weight:600}
-  .btn:hover{background:#f8fafc}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--text);padding:8px 11px;border-radius:9px;font-weight:600;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .08s ease,color .16s ease;box-shadow:0 1px 1px rgba(31,41,55,.02)}
+  .btn:hover{background:#f8fafc;border-color:#aeb8c4;box-shadow:0 4px 12px rgba(31,41,55,.08)}
+  .btn:active{transform:translateY(1px) scale(.985);box-shadow:none}
+  .btn:focus-visible,.tool-btn:focus-visible{outline:3px solid rgba(53,91,125,.22);outline-offset:2px}
   .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .btn.primary:hover{background:var(--accent-2)}
+  .btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
   .btn.danger{color:var(--danger)}
+  .btn.danger:hover{background:#fff5f4;border-color:#f0b8b2}
   .btn.small{padding:6px 9px;font-size:13px}
+  .btn.toggle-on,.btn[aria-pressed="true"]{background:#e8f0f6;border-color:#87a2b9;color:#24445f;box-shadow:inset 0 0 0 1px rgba(53,91,125,.08)}
   .layout{min-height:0;display:grid;grid-template-columns:310px minmax(0,1fr) 300px;gap:10px;padding:10px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-height:0;overflow:auto}
   .panel-title{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:13px 14px;font-weight:700}
@@ -51,8 +55,9 @@
   .row.wrap{flex-wrap:wrap}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .tool-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;text-align:left;display:flex;gap:9px;align-items:center;font-weight:600}
-  .tool-btn:hover{border-color:#aeb8c4;background:#f8fafc}
+  .tool-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;text-align:left;display:flex;gap:9px;align-items:center;font-weight:600;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .08s ease}
+  .tool-btn:hover{border-color:#8fa5b8;background:#f8fafc;box-shadow:0 5px 14px rgba(31,41,55,.07)}
+  .tool-btn:active{transform:translateY(1px) scale(.99)}
   .symbol-mini{width:23px;height:23px;border:2px solid #111;display:inline-grid;place-items:center;font-size:12px;flex:0 0 auto}
   .symbol-mini.circle{border-radius:50%}
   .symbol-mini.diamond{transform:rotate(45deg)}
@@ -80,6 +85,18 @@
   .relation-swatch.double::after{content:"";position:absolute;left:0;right:0;top:9px;border-top:2px solid #111}
   .relation-swatch.dashed::before{border-top-style:dashed}
   .relation-swatch.red::before{border-color:#b42318;border-top-style:dashed}
+  .setting-card{display:grid;gap:7px;padding:10px;border:1px solid #e2e8ef;border-radius:10px;background:#fafcfd}
+  .setting-card.enabled{border-color:#9eb4c6;background:#f3f8fb}
+  .setting-line{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .setting-value{font-size:12px;color:var(--muted);font-weight:700}
+  .color-control{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center}
+  .color-control input[type="color"]{width:52px;height:40px;padding:3px;border-radius:9px;background:#fff;cursor:pointer}
+  .color-palette{display:flex;flex-wrap:wrap;gap:7px}
+  .color-swatch{width:27px;height:27px;border-radius:8px;border:2px solid rgba(31,41,55,.18);padding:0;box-shadow:0 1px 3px rgba(31,41,55,.08);transition:transform .1s ease,border-color .15s ease}
+  .color-swatch:hover{transform:scale(1.08);border-color:#355b7d}
+  .color-swatch:active{transform:scale(.96)}
+  .color-reset{font-size:12px;padding:5px 8px}
+  #gridBackground{pointer-events:all}
   .meta-settings{display:grid;gap:8px}
   dialog{border:0;border-radius:14px;padding:0;box-shadow:0 24px 80px rgba(0,0,0,.22);max-width:520px;width:calc(100% - 24px)}
   dialog::backdrop{background:rgba(24,34,45,.44)}
@@ -104,7 +121,7 @@
     .workspace-panel{min-height:620px}
   }
   @media print{
-    header,.left-panel,.right-panel,.workspace-toolbar,.workspace-status{display:none!important}
+    header,.left-panel,.right-panel,.workspace-toolbar,.workspace-status,#gridBackground{display:none!important}
     body,.app,.layout,.workspace-panel,#canvasWrap{background:#fff!important;height:auto!important;overflow:visible!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
     .layout{display:block!important}
     #canvas{width:100%!important;height:auto!important}
@@ -117,8 +134,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 V2</h1>
-        <p>台灣社工實務常見符號｜風險與互動關係｜離線可用</p>
+        <h1>家系圖快速製作器 V3</h1>
+        <p>台灣社工實務常見符號｜網格精準排版｜自訂分類色彩｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -175,6 +192,14 @@
       <section class="section">
         <h3>排列與畫布</h3>
         <div class="stack">
+          <div class="setting-card" id="gridSettingCard">
+            <div class="setting-line">
+              <label class="check"><input type="checkbox" id="snapToGrid" checked /> 網格對齊</label>
+              <span class="setting-value">20 px</span>
+            </div>
+            <div class="hint">啟用後顯示淡色點狀網格；拖曳人物、文字與外框時會自動吸附。</div>
+          </div>
+          <button class="btn" id="alignAllToGridBtn">將現有物件對齊網格</button>
           <button class="btn" id="autoLayoutBtn">自動排列世代</button>
           <div class="grid2">
             <button class="btn" id="undoBtn">復原</button>
@@ -203,7 +228,7 @@
       </section>
 
       <section class="section">
-        <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。正式個案資料仍請依機構個資與資訊安全規範處理；暴力、健康與兒少資訊屬高度敏感資料。</div>
+        <div class="privacy"><strong>個資提醒：</strong>V3 的網格與顏色設定會一併存入專案。專案預設只存於目前瀏覽器，不會自動上傳。正式個案資料仍請依機構個資與資訊安全規範處理；暴力、健康與兒少資訊屬高度敏感資料。</div>
       </section>
     </aside>
 
@@ -213,6 +238,7 @@
         <button class="btn small" id="zoomResetBtn">100%</button>
         <button class="btn small" id="zoomInBtn">＋</button>
         <button class="btn small" id="fitBtn">適合畫面</button>
+        <button class="btn small" id="gridToggleBtn" type="button" aria-pressed="true" title="切換 20px 網格吸附">網格：開</button>
       </div>
       <div class="workspace-status" id="statusText">點選物件可編輯；拖曳可移動</div>
       <div id="canvasWrap">
@@ -224,8 +250,12 @@
             <marker id="redArrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L9,4.5 L0,9 Z" fill="#b42318"/>
             </marker>
+            <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle id="gridDot" cx="1.5" cy="1.5" r="1.15" fill="#c5ced8"/>
+            </pattern>
           </defs>
-          <rect x="0" y="0" width="1400" height="900" fill="#fff"/>
+          <rect id="canvasBackground" x="0" y="0" width="1400" height="900" fill="#fff"/>
+          <rect id="gridBackground" x="0" y="0" width="1400" height="900" fill="url(#gridPattern)"/>
           <g id="frameLayer"></g>
           <g id="relationLayer"></g>
           <g id="nodeLayer"></g>
@@ -313,13 +343,15 @@
   const statusText = $('#statusText');
   const toast = $('#toast');
 
+  const GRID_SIZE = 20;
+
   const defaultState = () => ({
-    version: 2,
+    version: 3,
     nodes: [],
     relations: [],
     frames: [],
     texts: [],
-    meta: {title:'家系圖', subtitle:'', showRiskMarkers:true},
+    meta: {title:'家系圖', subtitle:'', showRiskMarkers:true, snapToGrid:true, gridSize:GRID_SIZE},
     selected: null,
     zoom: 1,
     panX: 0,
@@ -335,6 +367,10 @@
 
   const uid = (prefix) => prefix + '_' + Math.random().toString(36).slice(2, 9);
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const gridSize = () => Number(state.meta?.gridSize) || GRID_SIZE;
+  const isGridEnabled = () => state.meta?.snapToGrid !== false;
+  const snapValue = value => isGridEnabled() ? Math.round(Number(value) / gridSize()) * gridSize() : Number(value);
+  const snapPoint = (x,y) => ({x:snapValue(x),y:snapValue(y)});
   const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const lossTypeName = type => ({miscarriage:'自然流產',abortion:'人工流產',stillbirth:'死產',unknown:'流產／死產'}[type] || '流產／死產');
   const sexName = sex => ({male:'男性',female:'女性',unknown:'性別未明',pregnancy:'懷孕',loss:'流產／死產'}[sex] || '成員');
@@ -354,12 +390,12 @@
   function normalizeState(data={}){
     const base=defaultState();
     return {
-      ...base, ...data, version:2, selected:null,
+      ...base, ...data, version:3, selected:null,
       nodes:(data.nodes||[]).map(normalizeNode),
       relations:(data.relations||[]).map(normalizeRelation),
       frames:(data.frames||[]).map(f=>({id:f.id||uid('f'),x:Number(f.x??420),y:Number(f.y??240),width:Number(f.width??560),height:Number(f.height??360),label:f.label||'同住／家庭範圍',dashed:!!f.dashed,rounded:f.rounded!==false})),
       texts:(data.texts||[]).map(t=>({id:t.id||uid('t'),x:Number(t.x??700),y:Number(t.y??150),text:t.text||'文字說明',fontSize:Number(t.fontSize??22),bold:!!t.bold})),
-      meta:{...base.meta,...(data.meta||{})}
+      meta:{...base.meta,...(data.meta||{}),gridSize:GRID_SIZE}
     };
   }
 
@@ -432,6 +468,7 @@
       lossType:n.lossType || 'unknown',
       gestationWeeks:n.gestationWeeks || '',
       note:n.note || '',
+      fillColor:n.fillColor || '',
       x:Number(n.x ?? 700),
       y:Number(n.y ?? 450),
       size:Number(n.size ?? 58)
@@ -481,6 +518,49 @@
   function getFrame(id){ return state.frames.find(f => f.id === id); }
   function getText(id){ return state.texts.find(t => t.id === id); }
 
+  function updateGridVisual(){
+    const enabled=isGridEnabled();
+    const bg=$('#gridBackground');
+    const pattern=$('#gridPattern');
+    if(pattern){ pattern.setAttribute('width',gridSize()); pattern.setAttribute('height',gridSize()); }
+    if(bg) bg.style.display=enabled?'':'none';
+    const toggle=$('#gridToggleBtn');
+    if(toggle){
+      toggle.textContent=enabled?'網格：開':'網格：關';
+      toggle.setAttribute('aria-pressed',String(enabled));
+      toggle.classList.toggle('toggle-on',enabled);
+    }
+    const checkbox=$('#snapToGrid');
+    if(checkbox) checkbox.checked=enabled;
+    $('#gridSettingCard')?.classList.toggle('enabled',enabled);
+  }
+
+  function snapAllObjects(){
+    const size=gridSize();
+    state.nodes.forEach(n=>{n.x=Math.round(n.x/size)*size;n.y=Math.round(n.y/size)*size;});
+    state.texts.forEach(t=>{t.x=Math.round(t.x/size)*size;t.y=Math.round(t.y/size)*size;});
+    state.frames.forEach(f=>{
+      f.x=Math.round(f.x/size)*size; f.y=Math.round(f.y/size)*size;
+      f.width=Math.max(120,Math.round(f.width/size)*size);
+      f.height=Math.max(80,Math.round(f.height/size)*size);
+    });
+  }
+
+  function alignAllToGrid(withSnapshot=true){
+    if(withSnapshot) snapshot();
+    snapAllObjects();
+    render();persist();
+    if(withSnapshot) showToast('已將現有物件對齊 20px 網格');
+  }
+
+  function setGridEnabled(enabled){
+    snapshot();
+    state.meta={...(state.meta||{}),snapToGrid:!!enabled,gridSize:GRID_SIZE};
+    if(enabled) snapAllObjects();
+    render();persist();
+    showToast(enabled?'已開啟 20px 網格吸附':'已關閉網格吸附');
+  }
+
   function render(skipInspector=false){
     frameLayer.innerHTML = '';
     relationLayer.innerHTML = '';
@@ -495,6 +575,7 @@
     state.texts.forEach(drawText);
     drawMetaLayer();
     drawSelection();
+    updateGridVisual();
     if(!skipInspector) renderInspector();
     updateStatus();
   }
@@ -641,14 +722,15 @@
   function drawNode(n){
     const g = svgEl('g', {'data-kind':'node','data-id':n.id, class:'draggable', transform:`translate(${n.x},${n.y})`});
     const r=n.size/2;
-    const common={fill:n.proband?'#e4e9ed':'#fff',stroke:'#111','stroke-width':2.4};
+    const effectiveFill=n.fillColor || (n.proband?'#e4e9ed':'#fff');
+    const common={fill:effectiveFill,stroke:'#111','stroke-width':2.4};
     let shape;
     if(n.sex==='male') shape=svgEl('rect',{x:-r,y:-r,width:n.size,height:n.size,...common});
     else if(n.sex==='female') shape=svgEl('circle',{cx:0,cy:0,r,...common});
     else if(n.sex==='pregnancy') shape=svgEl('polygon',{points:`0,${-r} ${r},${r} ${-r},${r}`,...common});
     else if(n.sex==='loss'){
       const small=r*.82;
-      shape=svgEl('polygon',{points:`0,${-small} ${small},${small} ${-small},${small}`,fill:n.lossType==='miscarriage'?'#111':'#fff',stroke:'#111','stroke-width':2.4});
+      shape=svgEl('polygon',{points:`0,${-small} ${small},${small} ${-small},${small}`,fill:n.fillColor || (n.lossType==='miscarriage'?'#111':'#fff'),stroke:'#111','stroke-width':2.4});
     }else shape=svgEl('polygon',{points:`0,${-r} ${r},0 0,${r} ${-r},0`,...common});
     g.appendChild(shape);
 
@@ -786,13 +868,16 @@
       drag.moved=true;
       if(drag.kind==='resizeFrame'){
         const f=getFrame(drag.id); if(!f) return;
-        f.width=clamp(drag.origW+(p.x-drag.startX),120,1200);
-        f.height=clamp(drag.origH+(p.y-drag.startY),80,800);
+        const rawW=clamp(drag.origW+(p.x-drag.startX),120,1200);
+        const rawH=clamp(drag.origH+(p.y-drag.startY),80,800);
+        f.width=isGridEnabled()?Math.max(120,snapValue(rawW)):rawW;
+        f.height=isGridEnabled()?Math.max(80,snapValue(rawH)):rawH;
       }else{
         const obj=drag.kind==='node'?getNode(drag.id):drag.kind==='frame'?getFrame(drag.id):getText(drag.id);
         if(!obj) return;
-        obj.x=drag.origX+(p.x-drag.startX);
-        obj.y=drag.origY+(p.y-drag.startY);
+        const point=snapPoint(drag.origX+(p.x-drag.startX),drag.origY+(p.y-drag.startY));
+        obj.x=point.x;
+        obj.y=point.y;
       }
       render();
     }else if(pan){
@@ -810,7 +895,8 @@
   });
 
   canvas.addEventListener('pointerdown',evt=>{
-    if(evt.target===canvas || evt.target.tagName==='rect' && evt.target.parentElement===canvas){
+    const isCanvasBackground=evt.target===canvas || (evt.target.tagName==='rect' && evt.target.parentElement===canvas);
+    if(isCanvasBackground){
       state.selected=null; render();
     }
     if(evt.button===1 || evt.altKey){
@@ -858,10 +944,31 @@
         ${!isPregnancy&&!isLoss?`<label class="check"><input type="checkbox" data-k="deceased" ${n.deceased?'checked':''}/> 已歿（圖形內加叉）</label>`:''}
         <label class="check"><input type="checkbox" data-k="risk" ${n.risk?'checked':''}/> 高風險／需注意（紅色箭頭）</label>
         <div class="field"><label>風險標籤（選填）</label><input data-k="riskNote" value="${esc(n.riskNote)}" placeholder="例如：自傷風險、家暴風險" /></div>
+        <div class="field">
+          <label>節點填色</label>
+          <div class="color-control">
+            <input type="color" data-k="fillColor" value="${esc(n.fillColor||'#ffffff')}" aria-label="自訂節點填色" />
+            <div class="hint">可用於區分同住家庭、不同居住地或需特別辨識的成員。</div>
+          </div>
+          <div class="color-palette" aria-label="常用色彩">
+            <button type="button" class="color-swatch" data-fill-preset="#fff1a8" style="background:#fff1a8" title="淡黃"></button>
+            <button type="button" class="color-swatch" data-fill-preset="#dceeff" style="background:#dceeff" title="淡藍"></button>
+            <button type="button" class="color-swatch" data-fill-preset="#dff3e4" style="background:#dff3e4" title="淡綠"></button>
+            <button type="button" class="color-swatch" data-fill-preset="#f9dddd" style="background:#f9dddd" title="淡紅"></button>
+            <button type="button" class="color-swatch" data-fill-preset="#eadff7" style="background:#eadff7" title="淡紫"></button>
+            <button type="button" class="btn color-reset" data-reset-fill>恢復預設</button>
+          </div>
+        </div>
         <div class="field"><label>符號大小</label><input type="range" min="42" max="84" value="${n.size}" data-k="size" /></div>
         <div class="inspector-actions"><button class="btn danger" data-delete>刪除此人物／事件</button></div>
       </div>`;
     bindInspector(n,'node');
+    inspector.querySelectorAll('[data-fill-preset]').forEach(btn=>btn.addEventListener('click',()=>{
+      snapshot();n.fillColor=btn.dataset.fillPreset;render();persist();
+    }));
+    inspector.querySelector('[data-reset-fill]')?.addEventListener('click',()=>{
+      snapshot();n.fillColor='';render();persist();
+    });
   }
 
   function relationSubtypeOptions(type,current=''){
@@ -946,7 +1053,7 @@
 
   function updateStatus(){
     const n=state.nodes.length,r=state.relations.length,risk=state.nodes.filter(x=>x.risk).length;
-    statusText.textContent=`人物／事件 ${n}｜關係 ${r}${risk?`｜風險標記 ${risk}`:''}｜點選可編輯，拖曳可移動`;
+    statusText.textContent=`人物／事件 ${n}｜關係 ${r}${risk?`｜風險標記 ${risk}`:''}｜網格 ${isGridEnabled()?'開':'關'}｜點選可編輯，拖曳可移動`;
   }
 
   function populateRelationSelects(){
@@ -1164,6 +1271,7 @@
     });
 
     // 同一世代保留固定間距，避免不同家庭單位互相重疊。
+    if(isGridEnabled()) snapAllObjects();
 
     render();persist();
   }
@@ -1182,6 +1290,7 @@
   function getCleanSvgString(){
     const clone=canvas.cloneNode(true);
     clone.querySelector('#selectionLayer')?.remove();
+    clone.querySelector('#gridBackground')?.remove();
     clone.setAttribute('xmlns',SVG_NS);
     clone.setAttribute('width','1400');clone.setAttribute('height','900');
     return new XMLSerializer().serializeToString(clone);
@@ -1238,6 +1347,8 @@
     $('#metaTitle').value=state.meta?.title||'';
     $('#metaSubtitle').value=state.meta?.subtitle||'';
     $('#showRiskMarkers').checked=state.meta?.showRiskMarkers!==false;
+    $('#snapToGrid').checked=isGridEnabled();
+    updateGridVisual();
   }
   function updateMeta(key,value){
     snapshot();state.meta={...(state.meta||{}),[key]:value};render();persist();
@@ -1245,6 +1356,9 @@
   $('#metaTitle').addEventListener('input',e=>updateMeta('title',e.target.value));
   $('#metaSubtitle').addEventListener('input',e=>updateMeta('subtitle',e.target.value));
   $('#showRiskMarkers').addEventListener('change',e=>updateMeta('showRiskMarkers',e.target.checked));
+  $('#snapToGrid').addEventListener('change',e=>setGridEnabled(e.target.checked));
+  $('#gridToggleBtn').addEventListener('click',()=>setGridEnabled(!isGridEnabled()));
+  $('#alignAllToGridBtn').addEventListener('click',()=>alignAllToGrid(true));
 
   $('#parseBtn').addEventListener('click',()=>applyParsed($('#quickInput').value));
   $('#sampleBtn').addEventListener('click',()=>{$('#quickInput').value=`個案：女性，80歲，在家照顧\n配偶：男性，已歿\n長男：55歲，婚配三次，第一次有1子28歲，第二次無子女，第三次有1女16歲\n次女：50歲，未婚\n三女：48歲，已婚，育有一子(15歲)`;});
