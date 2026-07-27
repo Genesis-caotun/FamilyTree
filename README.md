@@ -1,17 +1,31 @@
-# 家系圖快速製作器 V3
+# 家系圖快速製作器 V4.0.0
 
-## GitHub Pages 部署
-1. 將本資料夾內的 `index.html` 上傳到 FamilyTree 儲存庫根目錄。
-2. 覆蓋舊版 `index.html` 並提交。
-3. 等待 GitHub Actions 的 Pages 部署完成。
+發布日期：2026-07-27
 
-## V3 新增
-- 20px 點狀網格與拖曳吸附
-- 一鍵將現有物件對齊網格
-- 人物／事件節點自訂填色與常用色票
-- 強化按鈕 Hover、Active、Focus 操作回饋
-- 網格與顏色納入本機儲存、復原／重做與 JSON 專案
-- 匯出 SVG／PNG／列印時不帶出輔助網格
+## 部署到 GitHub Pages
+
+將 `index.html`、`styles.css`、`app.js` 三個檔案一起放在 `FamilyTree` 儲存庫根目錄：
+
+```text
+FamilyTree/
+├─ index.html
+├─ styles.css
+└─ app.js
+```
+
+GitHub：Settings → Pages → Deploy from a branch → `main` / `/(root)`。
+
+## V4 重點
+
+- 自動避障直角路由，降低關係線穿過人物節點。
+- 關係線可新增與拖曳手動轉折點。
+- 文字解析容錯與未辨識內容回報。
+- SVG／PNG 依內容範圍動態裁切。
+- 一鍵匿名化：代號或隱藏姓名，可同步隱藏備註。
+- 局部圖層更新與輸入儲存防抖。
+- 手機／平板長按拖曳與方向微調。
+- CSS、JavaScript 與 HTML 拆分，便於版本控制。
 
 ## 個資提醒
-網頁不會自動上傳資料；正式個案資料仍須依所屬機構規範處理。
+
+JSON 專案會保留原始姓名與資料，即使畫布開啟匿名模式也一樣。請依單位規範妥善保存。
