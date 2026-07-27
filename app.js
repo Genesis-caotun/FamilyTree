@@ -16,12 +16,12 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '5.0.0';
+  const APP_VERSION = '5.1.0';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
   const defaultState = () => ({
-    version: 5,
+    version: 5.1,
     nodes: [],
     relations: [],
     frames: [],
@@ -81,7 +81,7 @@
     return {
       id:r.id || uid('r'), from:r.from, to:r.to, type:r.type || 'partner',
       status:r.status || 'married', subtype:r.subtype || (r.type==='parent'?'biological':''),
-      label:r.label || '', routing:r.routing || ((r.points||[]).length?'manual':'auto'),
+      label:r.label || '', unionId:r.unionId || '', routing:r.routing || ((r.points||[]).length?'manual':'auto'),
       points:Array.isArray(r.points)?r.points.map(p=>({x:Number(p.x)||0,y:Number(p.y)||0})):[]
     };
   }
@@ -89,7 +89,7 @@
   function normalizeState(data={}){
     const base=defaultState();
     return {
-      ...base, ...data, version:5, selected:null,
+      ...base, ...data, version:5.1, selected:null,
       nodes:(data.nodes||[]).map(normalizeNode),
       relations:(data.relations||[]).map(normalizeRelation),
       frames:(data.frames||[]).map(f=>({id:f.id||uid('f'),x:Number(f.x??420),y:Number(f.y??240),width:Number(f.width??560),height:Number(f.height??360),label:f.label||'同住／家庭範圍',dashed:!!f.dashed,rounded:f.rounded!==false})),
@@ -123,13 +123,16 @@
   }
 
   function restore(){
+    let sourceVersion=0;
     try{
       const raw = localStorage.getItem('genogram-builder-state');
       if(raw){
         const parsed = JSON.parse(raw);
+        sourceVersion=Number(parsed?.version)||0;
         if(parsed && parsed.nodes) state = normalizeState(parsed);
       }
     }catch(e){}
+    return sourceVersion;
   }
 
   function showToast(msg){
@@ -205,7 +208,7 @@
       id:uid('r'), from, to, type,
       status:opts.status || 'married',
       subtype:opts.subtype || (type==='parent'?'biological':''),
-      label:opts.label || '', routing:'auto', points:[]
+      label:opts.label || '', unionId:opts.unionId || '', routing:'auto', points:[]
     };
     state.relations.push(r);
     state.selected = {kind:'relation', id:r.id};
@@ -407,11 +410,24 @@
     return state.relations.find(r=>r.type==='partner'&&((r.from===aId&&r.to===bId)||(r.from===bId&&r.to===aId)));
   }
 
-  function partnerUnionAnchor(a,b){
-    const relation=findPartnerRelation(a.id,b.id);
+  function partnerUnionAnchor(a,b,relationOverride=null){
+    const relation=relationOverride||findPartnerRelation(a.id,b.id);
     if(!relation) return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
     const p1=nodeEdgePoint(a,b),p2=nodeEdgePoint(b,a);
     const route=partnerRoutePoints(relation,a,b,p1,p2);
+    // 子女必須從該段婚姻線的水平中點向下，而不是用整條折線的路徑長度中點。
+    // 多次婚配需要繞開其他配偶時，優先取最長的水平婚姻線段作為家庭聯結點。
+    const horizontal=[];
+    for(let i=1;i<route.length;i++){
+      const p=route[i-1],q=route[i];
+      if(Math.abs(p.y-q.y)<1){
+        horizontal.push({x:(p.x+q.x)/2,y:p.y,length:Math.abs(q.x-p.x)});
+      }
+    }
+    if(horizontal.length){
+      horizontal.sort((x,y)=>y.length-x.length);
+      return {x:horizontal[0].x,y:horizontal[0].y};
+    }
     const anchor=pointOnRoute(route,.5);
     return {x:anchor.x,y:anchor.y};
   }
@@ -424,6 +440,71 @@
     return Number.isFinite(age)&&age>0 ? 100-age/1000 : 500;
   }
 
+  function repairMissingCoParentsByGeometry(){
+    const byChild=new Map();
+    state.relations.filter(r=>r.type==='parent').forEach(r=>{
+      if(!byChild.has(r.to))byChild.set(r.to,[]);
+      byChild.get(r.to).push(r);
+    });
+    let repaired=0;
+    byChild.forEach((rels,childId)=>{
+      if(rels.length!==1)return;
+      const child=getNode(childId),primary=getNode(rels[0].from);
+      if(!child||!primary)return;
+      const partnerLinks=state.relations.filter(r=>r.type==='partner'&&(r.from===primary.id||r.to===primary.id));
+      const candidates=partnerLinks.map(union=>({
+        union,
+        partner:getNode(union.from===primary.id?union.to:union.from)
+      })).filter(x=>x.partner);
+      if(!candidates.length)return;
+      let chosen=null;
+      if(candidates.length===1){
+        chosen=candidates[0];
+      }else{
+        // 僅在多任配偶已有明確「第N任」名稱，且孩子原位置明顯落在某段婚姻線下方時才推定。
+        if(!candidates.every(x=>/^第[一二三四五六七八九十\d]+任配偶$/.test(x.partner.name||'')))return;
+        const scored=candidates.map(x=>{
+          const unionMidX=(primary.x+x.partner.x)/2;
+          const horizontal=Math.abs(child.x-unionMidX);
+          const vertical=Math.max(0,child.y-Math.max(primary.y,x.partner.y));
+          return {...x,score:horizontal+vertical*.12};
+        }).sort((a,b)=>a.score-b.score);
+        if(scored.length===1||scored[0].score+35<scored[1].score||scored[0].score<scored[1].score*.7)chosen=scored[0];
+      }
+      if(!chosen)return;
+      rels[0].unionId=chosen.union.id;
+      state.relations.push(normalizeRelation({
+        id:uid('r'),from:chosen.partner.id,to:child.id,type:'parent',subtype:rels[0].subtype||'biological',unionId:chosen.union.id,label:''
+      }));
+      repaired++;
+    });
+    return repaired;
+  }
+
+  function inferParentUnionIds(){
+    const byChild=new Map();
+    state.relations.filter(r=>r.type==='parent').forEach(r=>{
+      if(!byChild.has(r.to))byChild.set(r.to,[]);
+      byChild.get(r.to).push(r);
+    });
+    let repaired=0;
+    byChild.forEach(rels=>{
+      const explicit=rels.find(r=>r.unionId&&getRelation(r.unionId)?.type==='partner')?.unionId;
+      if(explicit){
+        const union=getRelation(explicit);
+        const endpoints=new Set(union?[union.from,union.to]:[]);
+        rels.forEach(r=>{if(!r.unionId&&endpoints.has(r.from)){r.unionId=explicit;repaired++;}});
+        return;
+      }
+      const parentIds=[...new Set(rels.map(r=>r.from))];
+      if(parentIds.length===2){
+        const union=findPartnerRelation(parentIds[0],parentIds[1]);
+        if(union)rels.forEach(r=>{r.unionId=union.id;repaired++;});
+      }
+    });
+    return repaired;
+  }
+
   function parentFamilyGroups(){
     const byChild=new Map();
     state.relations.filter(r=>r.type==='parent').forEach(r=>{
@@ -433,18 +514,27 @@
     const groups=new Map();
     byChild.forEach((rels,childId)=>{
       const child=getNode(childId);if(!child)return;
-      const uniqueParents=[...new Set(rels.map(r=>r.from))].map(getNode).filter(Boolean);
-      if(!uniqueParents.length)return;
-      // 超過兩名法定／照顧父母時，優先採有伴侶關係的一組；其餘關係仍保留於資料中。
-      let parents=uniqueParents.slice(0,2);
-      if(uniqueParents.length>2){
-        outer:for(let i=0;i<uniqueParents.length;i++)for(let j=i+1;j<uniqueParents.length;j++){
-          if(findPartnerRelation(uniqueParents[i].id,uniqueParents[j].id)){parents=[uniqueParents[i],uniqueParents[j]];break outer;}
+      const explicitUnionId=rels.map(r=>r.unionId).find(id=>id&&getRelation(id)?.type==='partner')||'';
+      let parents=[],union=null,key='';
+      if(explicitUnionId){
+        union=getRelation(explicitUnionId);
+        parents=[getNode(union.from),getNode(union.to)].filter(Boolean);
+        key=`union:${explicitUnionId}`;
+      }else{
+        const uniqueParents=[...new Set(rels.map(r=>r.from))].map(getNode).filter(Boolean);
+        if(!uniqueParents.length)return;
+        parents=uniqueParents.slice(0,2);
+        if(uniqueParents.length>1){
+          outer:for(let i=0;i<uniqueParents.length;i++)for(let j=i+1;j<uniqueParents.length;j++){
+            const candidate=findPartnerRelation(uniqueParents[i].id,uniqueParents[j].id);
+            if(candidate){parents=[uniqueParents[i],uniqueParents[j]];union=candidate;break outer;}
+          }
         }
+        parents.sort((a,b)=>a.id.localeCompare(b.id));
+        key=union?`union:${union.id}`:`parents:${parents.map(p=>p.id).join('|')}`;
       }
-      parents.sort((a,b)=>a.id.localeCompare(b.id));
-      const key=parents.map(p=>p.id).join('|');
-      if(!groups.has(key))groups.set(key,{key,parents,children:[]});
+      if(!parents.length)return;
+      if(!groups.has(key))groups.set(key,{key,parents,union,children:[]});
       const relevant=rels.filter(r=>parents.some(p=>p.id===r.from));
       groups.get(key).children.push({node:child,relations:relevant});
     });
@@ -468,7 +558,7 @@
       if(!children.length)return;
       const parents=group.parents;
       let source;
-      if(parents.length>=2) source=partnerUnionAnchor(parents[0],parents[1]);
+      if(parents.length>=2) source=partnerUnionAnchor(parents[0],parents[1],group.union);
       else source={x:parents[0].x,y:parents[0].y+parents[0].size/2+2};
       const endpoints=children.map(c=>({x:c.node.x,y:c.node.y-c.node.size/2-2,info:c}));
       const nearestTop=Math.min(...endpoints.map(p=>p.y));
@@ -1009,7 +1099,10 @@
   function parseQuickInput(raw){
     const lines=normalizeQuickText(raw).split(/\n+/).map(s=>s.trim()).filter(Boolean),nodes=[],relations=[],warnings=[];let proband=null,spouse=null;const children=[];
     const newNode=p=>{const n=normalizeNode({...p,id:uid('n')});nodes.push(n);return n;};
-    const rel=(a,b,type='partner',opts={})=>relations.push(normalizeRelation({id:uid('r'),from:a.id,to:b.id,type,status:opts.status||'married',subtype:opts.subtype||(type==='parent'?'biological':''),label:opts.label||''}));
+    const rel=(a,b,type='partner',opts={})=>{
+      const r=normalizeRelation({id:uid('r'),from:a.id,to:b.id,type,status:opts.status||'married',subtype:opts.subtype||(type==='parent'?'biological':''),label:opts.label||'',unionId:opts.unionId||''});
+      relations.push(r);return r;
+    };
     const isChildRole=h=>/(長|大|次|二|三|四|五|六|七|八|九|么).*(男|子|女|兒)|^(長男|長女|次男|次女|三男|三女)/.test(h);
     for(const original of lines){
       const [head,bodyRaw]=splitRoleLine(original),body=bodyRaw||'';let handled=false;
@@ -1026,18 +1119,26 @@
         const count=parseMarriageCount(body),segments=marriageSegments(body,count),partners=[];
         for(let i=0;i<count;i++){
           const partner=newNode({name:count===1?'配偶':`第${['一','二','三','四','五','六'][i]||i+1}任配偶`,sex:sex==='male'?'female':sex==='female'?'male':'unknown'});partners.push(partner);
-          rel(child,partner,'partner',{status:/離婚/.test(segments[i])?'divorced':/分居/.test(segments[i])?'separated':/同居/.test(segments[i])?'cohabiting':'married'});
-          extractChildSpecs(segments[i]).forEach(spec=>{const c=newNode({name:spec.sex==='male'?'子':'女',sex:spec.sex,age:spec.age});rel(child,c,'parent');rel(partner,c,'parent');});
+          const union=rel(child,partner,'partner',{status:/離婚/.test(segments[i])?'divorced':/分居/.test(segments[i])?'separated':/同居/.test(segments[i])?'cohabiting':'married'});
+          extractChildSpecs(segments[i]).forEach(spec=>{
+            const c=newNode({name:spec.sex==='male'?'子':'女',sex:spec.sex,age:spec.age});
+            rel(child,c,'parent',{unionId:union.id});rel(partner,c,'parent',{unionId:union.id});
+          });
         }
         const general=extractChildSpecs(body);general.forEach(spec=>{
           const exists=nodes.some(n=>n.age===spec.age&&n.sex===spec.sex&&relations.some(r=>r.type==='parent'&&r.to===n.id&&r.from===child.id));if(exists)return;
-          const c=newNode({name:spec.sex==='male'?'子':'女',sex:spec.sex,age:spec.age});rel(child,c,'parent');if(partners.length===1)rel(partners[0],c,'parent');
+          const c=newNode({name:spec.sex==='male'?'子':'女',sex:spec.sex,age:spec.age});
+          const union=partners.length===1?relations.find(r=>r.type==='partner'&&((r.from===child.id&&r.to===partners[0].id)||(r.to===child.id&&r.from===partners[0].id))):null;
+          rel(child,c,'parent',{unionId:union?.id||''});if(partners.length===1)rel(partners[0],c,'parent',{unionId:union?.id||''});
         });
       }
       if(!handled)warnings.push(original);
     }
-    if(proband&&spouse)rel(spouse,proband,'partner',{status:'married'});
-    if(proband)children.forEach(c=>{rel(proband,c,'parent');if(spouse)rel(spouse,c,'parent');});
+    const rootUnion=proband&&spouse?rel(spouse,proband,'partner',{status:'married'}):null;
+    if(proband)children.forEach(c=>{
+      rel(proband,c,'parent',{unionId:rootUnion?.id||''});
+      if(spouse)rel(spouse,c,'parent',{unionId:rootUnion?.id||''});
+    });
     return {nodes,relations,warnings,total:lines.length};
   }
   function getTempNode(nodes,id){return nodes.find(n=>n.id===id)}
@@ -1079,6 +1180,8 @@
   function autoLayout(withSnapshot=true){
     if(withSnapshot)snapshot();
     const nodes=state.nodes;if(!nodes.length)return;
+    const repairedMissingParents=repairMissingCoParentsByGeometry();
+    inferParentUnionIds();
     const partnerRels=state.relations.filter(r=>r.type==='partner');
     const parentRels=state.relations.filter(r=>r.type==='parent');
 
@@ -1144,7 +1247,7 @@
     if(isGridEnabled())snapAllObjects();
     state.relations.filter(r=>r.type==='parent').forEach(r=>{r.points=[];r.routing='auto';});
     render();persist();
-    if(withSnapshot)showToast('已依同代同列、男左女右、長左幼右及婚姻線中點重新排列');
+    if(withSnapshot)showToast(repairedMissingParents?`已補回 ${repairedMissingParents} 條缺漏的另一位父母連線，並重新排列`:'已修正多次婚配家庭聯結，並依同代同列、長左幼右重新排列');
   }
 
   function clearAll(){
@@ -1302,8 +1405,21 @@
   });
 
   $('#versionBadge').textContent=`V${APP_VERSION}`;
-  restore();
+  const restoredVersion=restore();
   syncMetaControls();
-  if(!state.nodes.length){ applyParsed($('#quickInput').value); history=[]; future=[]; }
-  else render();
+  if(!state.nodes.length){
+    applyParsed($('#quickInput').value);history=[];future=[];
+  }else if(restoredVersion<5.1){
+    // V5.1 首次載入會修補舊專案缺少的「婚姻聯結 ID」，並重新對齊同世代。
+    repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);history=[];future=[];persist();
+    showToast('已升級為 V5.1：修正第三任配偶子女的婚姻線中點連接');
+  }else{
+    inferParentUnionIds();render();persist();
+  }
+  window.__GENOGRAM_DEBUG__={
+    version:APP_VERSION,
+    getState:()=>JSON.parse(JSON.stringify({...state,selected:null})),
+    repair:()=>{repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);return true;}
+  };
+
 })();

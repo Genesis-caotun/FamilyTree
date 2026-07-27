@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.0.0</title>
-<link rel="stylesheet" href="styles.css" />
+<title>家系圖快速製作器 V5.1.0</title>
+<link rel="stylesheet" href="styles.css?v=5.1.0" />
 </head>
 <body>
 <div class="app">
@@ -12,8 +12,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.0.0</span></h1>
-        <p>台灣社工家系圖排列｜同代同列｜婚姻線中點連接子女｜匿名化匯出｜離線可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.1.0</span></h1>
+        <p>台灣社工家系圖排列｜同代同列｜多次婚配子女精準歸屬｜婚姻線中點連接｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -93,7 +93,7 @@
             <div class="hint">啟用後顯示淡色點狀網格；拖曳人物、文字與外框時會自動吸附。</div>
           </div>
           <button class="btn" id="alignAllToGridBtn">將現有物件對齊網格</button>
-          <button class="btn primary" id="autoLayoutBtn">依社工原則排列</button>
+          <button class="btn primary" id="autoLayoutBtn">依社工原則排列／修正連線</button>
           <div class="setting-card social-layout-card">
             <strong>V5 排列規則</strong>
             <div class="hint">長輩在上、晚輩在下；同一世代固定同一橫排；夫妻男左女右；手足長左幼右；子女由父母婚姻線中點向下連接。</div>
@@ -139,7 +139,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.0.0</strong><span>2026-07-28</span><p>重寫世代排列與親子結構線：同一輩分同一橫排，手足長左幼右，子女由父母婚姻線中點向下連接。</p></div>
+        <div class="version-card"><strong>版本 5.1.0</strong><span>2026-07-28</span><p>修正多次婚配家庭：每名子女綁定正確婚姻聯結，第三任配偶之子女會從該段婚姻線的水平中點向下連接。</p></div>
       </section>
     </aside>
 
@@ -235,10 +235,13 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.0.0</div>
+  <div class="dialog-head">家系圖快速製作器 V5.1.0</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V5.1 修正：</strong>每名子女綁定正確的婚姻／伴侶聯結，第三任配偶所生子女不再只接到核心父／母節點。</li>
+      <li>子女主幹固定由該段婚姻線的最長水平線段中點向下。</li>
+      <li>舊版專案首次載入時，會修補可明確判定的缺漏父母連線並重新同代對齊。</li>
       <li>重寫自動排列：所有同一世代人物固定在同一橫排。</li>
       <li>夫妻／伴侶優先依男左女右排列，多次婚配仍維持同世代水平位置。</li>
       <li>同胞手足依長幼由左至右排列。</li>
@@ -252,6 +255,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js" defer></script>
+<script src="app.js?v=5.1.0" defer></script>
 </body>
 </html>
