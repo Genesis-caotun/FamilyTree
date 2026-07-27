@@ -1,25 +1,19 @@
-家系圖快速製作器
-==================
+家系圖快速製作器 V2
 
-使用方式
-1. 下載 genogram-builder.html。
-2. 用 Chrome、Safari、Edge 或 Firefox 開啟。
-3. 在左側輸入家庭關係，按「產生家系圖」。
-4. 點選人物、關係線、文字或外框，可在右側修改。
-5. 可拖曳人物與框線，並匯出 SVG、PNG 或以瀏覽器列印成 PDF。
-6. 「儲存專案」會輸出 JSON；日後可用「載入專案」繼續編輯。
+部署到 GitHub Pages：
+1. 將 index.html 放在 FamilyTree 儲存庫最外層。
+2. Settings → Pages → Deploy from a branch。
+3. Branch 選 main，Folder 選 /(root)。
+4. 等待 Actions 的 pages build and deployment 完成。
 
-資料安全
-- 本工具為單機網頁，不會自動上傳個案資料。
-- 瀏覽器會在本機暫存最後一次內容。
-- 正式個案資料請依機構個資與資訊安全規範保存。
+V2 新增：
+- 懷孕、自然流產、人工流產、死產節點
+- 收養與寄養親子線
+- 同卵／異卵雙胞胎關係
+- 親密但衝突、施暴／受暴關係
+- 高風險紅色箭頭與風險標籤
+- 圖面標題與副標題
+- 手機版屬性編輯抽屜
+- 舊版 JSON 專案自動相容
 
-部署到 GitHub Pages
-1. 建立新的 GitHub repository。
-2. 將 genogram-builder.html 更名為 index.html。
-3. 上傳到 repository 根目錄。
-4. Settings → Pages → Deploy from branch → main / root。
-
-注意
-- 本工具採常見社工家系圖符號與關係線。
-- 各機構若有特定格式或內規，請以該單位規範為準。
+注意：不同機構對家系圖符號可能有內規，正式紀錄請以單位規範為準。

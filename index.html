@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器</title>
+<title>家系圖快速製作器 V2</title>
 <style>
   :root{
     --bg:#f4f6f8;
@@ -37,6 +37,9 @@
   .layout{min-height:0;display:grid;grid-template-columns:310px minmax(0,1fr) 300px;gap:10px;padding:10px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-height:0;overflow:auto}
   .panel-title{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:13px 14px;font-weight:700}
+  .panel-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .panel-close{display:none;border:0;background:transparent;color:var(--muted);font-weight:700;padding:4px 6px}
+  .inspector-toggle{display:none}
   .section{padding:14px;border-bottom:1px solid #edf0f3}
   .section:last-child{border-bottom:0}
   .section h3{font-size:14px;margin:0 0 9px}
@@ -69,6 +72,15 @@
   .privacy{background:#f7fafc;border:1px solid #d7e3ea;border-radius:10px;padding:10px;font-size:12px;line-height:1.6;color:#40566a}
   .legend-list{display:grid;gap:8px;font-size:13px}
   .legend-item{display:flex;gap:9px;align-items:center}
+  .legend-triangle{width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:23px solid #111;position:relative;display:inline-block;flex:0 0 24px}
+  .legend-triangle.outline{border-bottom-color:#111}
+  .legend-triangle.outline::after{content:"";position:absolute;left:-9px;top:4px;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:17px solid #fff}
+  .relation-swatch{display:inline-block;width:38px;height:12px;position:relative;flex:0 0 38px}
+  .relation-swatch::before{content:"";position:absolute;left:0;right:0;top:5px;border-top:2px solid #111}
+  .relation-swatch.double::after{content:"";position:absolute;left:0;right:0;top:9px;border-top:2px solid #111}
+  .relation-swatch.dashed::before{border-top-style:dashed}
+  .relation-swatch.red::before{border-color:#b42318;border-top-style:dashed}
+  .meta-settings{display:grid;gap:8px}
   dialog{border:0;border-radius:14px;padding:0;box-shadow:0 24px 80px rgba(0,0,0,.22);max-width:520px;width:calc(100% - 24px)}
   dialog::backdrop{background:rgba(24,34,45,.44)}
   .dialog-head{padding:15px 16px;border-bottom:1px solid var(--line);font-weight:700}
@@ -79,7 +91,10 @@
   .file-input{display:none}
   @media (max-width:1080px){
     .layout{grid-template-columns:270px minmax(0,1fr)}
-    .right-panel{display:none}
+    .inspector-toggle{display:inline-flex}
+    .right-panel{display:block;position:fixed;z-index:70;right:10px;top:74px;bottom:10px;width:min(360px,calc(100vw - 20px));transform:translateX(calc(100% + 24px));transition:transform .2s ease;box-shadow:0 20px 70px rgba(15,23,42,.22)}
+    .right-panel.open{transform:translateX(0)}
+    .panel-close{display:inline-block}
   }
   @media (max-width:760px){
     header{align-items:flex-start;flex-direction:column}
@@ -102,8 +117,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器</h1>
-        <p>常見社工家系圖符號｜離線可用｜資料留在瀏覽器</p>
+        <h1>家系圖快速製作器 V2</h1>
+        <p>台灣社工實務常見符號｜風險與互動關係｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -113,6 +128,7 @@
       <button class="btn small" id="exportSvgBtn">匯出 SVG</button>
       <button class="btn small" id="exportPngBtn">匯出 PNG</button>
       <button class="btn small" id="printBtn">列印／PDF</button>
+      <button class="btn small inspector-toggle" id="inspectorToggleBtn">屬性</button>
     </div>
   </header>
 
@@ -130,7 +146,7 @@
           <button class="btn primary" id="parseBtn" style="flex:1">產生家系圖</button>
           <button class="btn" id="sampleBtn">載入範例</button>
         </div>
-        <p class="hint">支援「個案、配偶、長男、次女、已婚、未婚、已歿、育有一子／女、婚配三次」等常見描述。解析後仍可逐項修改。</p>
+        <p class="hint">支援個案、配偶、出生序、多次婚配、子女、懷孕、流產／死產等描述。複雜關係仍建議生成後手動確認。</p>
       </section>
 
       <section class="section">
@@ -139,9 +155,20 @@
           <button class="tool-btn" data-add-node="male"><span class="symbol-mini"></span>男性</button>
           <button class="tool-btn" data-add-node="female"><span class="symbol-mini circle"></span>女性</button>
           <button class="tool-btn" data-add-node="unknown"><span class="symbol-mini diamond"><span>?</span></span>性別未明</button>
+          <button class="tool-btn" data-add-node="pregnancy"><span class="legend-triangle outline"></span>懷孕</button>
+          <button class="tool-btn" data-add-node="loss"><span class="legend-triangle"></span>流產／死產</button>
           <button class="tool-btn" id="addTextBtn"><span style="font-weight:800;font-size:20px">T</span>文字</button>
           <button class="tool-btn" id="addFrameBtn"><span style="width:26px;height:19px;border:2px dashed #111"></span>外框</button>
           <button class="tool-btn" id="addRelationBtn"><span style="font-size:20px">↔</span>關係線</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>圖面設定</h3>
+        <div class="meta-settings">
+          <div class="field"><label>標題</label><input id="metaTitle" value="家系圖" /></div>
+          <div class="field"><label>副標題／案號（選填）</label><input id="metaSubtitle" placeholder="例如：A001／家庭評估" /></div>
+          <label class="check"><input type="checkbox" id="showRiskMarkers" checked /> 顯示高風險紅色箭頭</label>
         </div>
       </section>
 
@@ -164,14 +191,19 @@
           <div class="legend-item"><span class="symbol-mini circle"></span>女性</div>
           <div class="legend-item"><span class="symbol-mini" style="position:relative">╳</span>已歿</div>
           <div class="legend-item"><span class="symbol-mini" style="box-shadow:0 0 0 3px #fff,0 0 0 5px #111"></span>案主／個案（雙框）</div>
-          <div class="legend-item"><span style="display:inline-block;width:34px;border-top:2px solid #111"></span>婚姻／伴侶關係</div>
-          <div class="legend-item"><span style="display:inline-block;width:34px;border-top:2px dashed #111"></span>同居</div>
+          <div class="legend-item"><span class="legend-triangle outline"></span>懷孕</div>
+          <div class="legend-item"><span class="legend-triangle"></span>流產／死產（類型可在屬性中調整）</div>
+          <div class="legend-item"><span class="relation-swatch"></span>婚姻／伴侶關係</div>
+          <div class="legend-item"><span class="relation-swatch dashed"></span>同居、收養或寄養（依標籤判讀）</div>
+          <div class="legend-item"><span class="relation-swatch double"></span>親密關係</div>
+          <div class="legend-item"><span class="relation-swatch red"></span>施暴者 → 受暴者</div>
+          <div class="legend-item"><span style="font-weight:800;color:#b42318;font-size:22px">↘</span>高風險／需注意</div>
         </div>
         <p class="hint">本工具採台灣社工實務常見的家系圖表達方式。不同機構若有內規，請以單位規範為準。</p>
       </section>
 
       <section class="section">
-        <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。正式個案資料仍請依機構個資與資訊安全規範處理。</div>
+        <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。正式個案資料仍請依機構個資與資訊安全規範處理；暴力、健康與兒少資訊屬高度敏感資料。</div>
       </section>
     </aside>
 
@@ -189,19 +221,23 @@
             <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L8,4 L0,8 Z" fill="#111"/>
             </marker>
+            <marker id="redArrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L9,4.5 L0,9 Z" fill="#b42318"/>
+            </marker>
           </defs>
           <rect x="0" y="0" width="1400" height="900" fill="#fff"/>
           <g id="frameLayer"></g>
           <g id="relationLayer"></g>
           <g id="nodeLayer"></g>
           <g id="textLayer"></g>
+          <g id="metaLayer"></g>
           <g id="selectionLayer"></g>
         </svg>
       </div>
     </section>
 
-    <aside class="panel right-panel">
-      <div class="panel-title">屬性編輯</div>
+    <aside class="panel right-panel" id="rightPanel">
+      <div class="panel-title panel-title-row"><span>屬性編輯</span><button class="panel-close" id="closeInspectorBtn">關閉</button></div>
       <div id="inspector" class="empty">請先點選人物、關係線、文字或外框。</div>
     </aside>
   </main>
@@ -215,9 +251,12 @@
       <select id="relationType">
         <option value="partner">婚姻／伴侶</option>
         <option value="parent">親子</option>
+        <option value="twins">雙胞胎／多胞胎</option>
         <option value="care">照顧／支持箭頭</option>
-        <option value="conflict">衝突關係</option>
         <option value="close">親密關係</option>
+        <option value="conflict">衝突關係</option>
+        <option value="closeConflict">親密但衝突</option>
+        <option value="abuse">施暴／受暴</option>
         <option value="cutoff">關係中斷</option>
       </select>
     </div>
@@ -237,6 +276,11 @@
         <option value="separated">分居</option>
         <option value="divorced">離婚</option>
       </select>
+    </div>
+    <div class="field" id="relationSubtypeField" style="display:none">
+      <label id="relationSubtypeLabel">關係細類</label>
+      <select id="relationSubtype"></select>
+      <div class="hint" id="relationSubtypeHint"></div>
     </div>
     <div class="field">
       <label>標籤（選填）</label>
@@ -263,17 +307,19 @@
   const relationLayer = $('#relationLayer');
   const nodeLayer = $('#nodeLayer');
   const textLayer = $('#textLayer');
+  const metaLayer = $('#metaLayer');
   const selectionLayer = $('#selectionLayer');
   const inspector = $('#inspector');
   const statusText = $('#statusText');
   const toast = $('#toast');
 
   const defaultState = () => ({
-    version: 1,
+    version: 2,
     nodes: [],
     relations: [],
     frames: [],
     texts: [],
+    meta: {title:'家系圖', subtitle:'', showRiskMarkers:true},
     selected: null,
     zoom: 1,
     panX: 0,
@@ -290,8 +336,32 @@
   const uid = (prefix) => prefix + '_' + Math.random().toString(36).slice(2, 9);
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const nodeLabel = n => [n.name || '', n.age ? `${n.age}歲` : '', n.note || ''].filter(Boolean).join('／') || `${sexName(n.sex)}成員`;
-  const sexName = sex => ({male:'男性',female:'女性',unknown:'性別未明'}[sex] || '成員');
+  const lossTypeName = type => ({miscarriage:'自然流產',abortion:'人工流產',stillbirth:'死產',unknown:'流產／死產'}[type] || '流產／死產');
+  const sexName = sex => ({male:'男性',female:'女性',unknown:'性別未明',pregnancy:'懷孕',loss:'流產／死產'}[sex] || '成員');
+  const nodeLabel = n => {
+    const stage = n.sex==='pregnancy' ? (n.gestationWeeks ? `孕${n.gestationWeeks}週` : '懷孕') : n.sex==='loss' ? lossTypeName(n.lossType) : (n.age ? `${n.age}歲` : '');
+    return [n.name || '', stage, n.note || ''].filter(Boolean).join('／') || `${sexName(n.sex)}成員`;
+  };
+
+  function normalizeRelation(r){
+    return {
+      id:r.id || uid('r'), from:r.from, to:r.to, type:r.type || 'partner',
+      status:r.status || 'married', subtype:r.subtype || (r.type==='parent'?'biological':''),
+      label:r.label || ''
+    };
+  }
+
+  function normalizeState(data={}){
+    const base=defaultState();
+    return {
+      ...base, ...data, version:2, selected:null,
+      nodes:(data.nodes||[]).map(normalizeNode),
+      relations:(data.relations||[]).map(normalizeRelation),
+      frames:(data.frames||[]).map(f=>({id:f.id||uid('f'),x:Number(f.x??420),y:Number(f.y??240),width:Number(f.width??560),height:Number(f.height??360),label:f.label||'同住／家庭範圍',dashed:!!f.dashed,rounded:f.rounded!==false})),
+      texts:(data.texts||[]).map(t=>({id:t.id||uid('t'),x:Number(t.x??700),y:Number(t.y??150),text:t.text||'文字說明',fontSize:Number(t.fontSize??22),bold:!!t.bold})),
+      meta:{...base.meta,...(data.meta||{})}
+    };
+  }
 
   function snapshot(){
     history.push(JSON.stringify({...state, selected:null}));
@@ -322,7 +392,7 @@
       const raw = localStorage.getItem('genogram-builder-state');
       if(raw){
         const parsed = JSON.parse(raw);
-        if(parsed && parsed.nodes) state = {...defaultState(), ...parsed, selected:null};
+        if(parsed && parsed.nodes) state = normalizeState(parsed);
       }
     }catch(e){}
   }
@@ -357,6 +427,10 @@
       age:n.age || '',
       deceased:!!n.deceased,
       proband:!!n.proband,
+      risk:!!n.risk,
+      riskNote:n.riskNote || '',
+      lossType:n.lossType || 'unknown',
+      gestationWeeks:n.gestationWeeks || '',
       note:n.note || '',
       x:Number(n.x ?? 700),
       y:Number(n.y ?? 450),
@@ -394,6 +468,7 @@
     const r = {
       id:uid('r'), from, to, type,
       status:opts.status || 'married',
+      subtype:opts.subtype || (type==='parent'?'biological':''),
       label:opts.label || ''
     };
     state.relations.push(r);
@@ -406,19 +481,21 @@
   function getFrame(id){ return state.frames.find(f => f.id === id); }
   function getText(id){ return state.texts.find(t => t.id === id); }
 
-  function render(){
+  function render(skipInspector=false){
     frameLayer.innerHTML = '';
     relationLayer.innerHTML = '';
     nodeLayer.innerHTML = '';
     textLayer.innerHTML = '';
+    metaLayer.innerHTML = '';
     selectionLayer.innerHTML = '';
 
     state.frames.forEach(drawFrame);
     state.relations.forEach(drawRelation);
     state.nodes.forEach(drawNode);
     state.texts.forEach(drawText);
+    drawMetaLayer();
     drawSelection();
-    renderInspector();
+    if(!skipInspector) renderInspector();
     updateStatus();
   }
 
@@ -454,12 +531,13 @@
     if(!a || !b) return;
     const g = svgEl('g', {'data-kind':'relation','data-id':r.id});
     const p1 = nodeEdgePoint(a,b), p2 = nodeEdgePoint(b,a);
+    let path=null;
+    let hitD=`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
 
-    let path;
     if(r.type === 'parent'){
-      // 若同一名子女的兩位家長彼此有伴侶關係，只畫一條由伴侶線中點出發的親子線。
       const coParentRels = state.relations.filter(x => x.type === 'parent' && x.to === r.to && x.from !== r.from);
       const paired = coParentRels.find(x => state.relations.some(pr => pr.type === 'partner' && ((pr.from === r.from && pr.to === x.from) || (pr.to === r.from && pr.from === x.from))));
+      const dash = r.subtype==='adopted' ? '9 6' : r.subtype==='foster' ? '3 6' : '';
       if(paired){
         const canonical = [r, paired].sort((x,y) => x.id.localeCompare(y.id))[0];
         if(canonical.id !== r.id) return;
@@ -468,28 +546,49 @@
         const source = {x:(a.x+other.x)/2, y:(a.y+other.y)/2};
         const target = nodeEdgePoint(b, source);
         const midY = source.y + (target.y-source.y)*0.48;
-        path = svgEl('path', {d:`M ${source.x} ${source.y} V ${midY} H ${target.x} V ${target.y}`,fill:'none',stroke:'#111','stroke-width':2.2});
+        hitD=`M ${source.x} ${source.y} V ${midY} H ${target.x} V ${target.y}`;
+        path = svgEl('path', {d:hitD,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':dash});
       }else{
         const midY = p1.y + (p2.y-p1.y)*0.48;
-        path = svgEl('path', {d:`M ${p1.x} ${p1.y} V ${midY} H ${p2.x} V ${p2.y}`,fill:'none',stroke:'#111','stroke-width':2.2});
+        hitD=`M ${p1.x} ${p1.y} V ${midY} H ${p2.x} V ${p2.y}`;
+        path = svgEl('path', {d:hitD,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':dash});
       }
+    }else if(r.type === 'twins'){
+      const apex={x:(p1.x+p2.x)/2,y:Math.min(p1.y,p2.y)-55};
+      const d1=`M ${apex.x} ${apex.y} L ${p1.x} ${p1.y}`;
+      const d2=`M ${apex.x} ${apex.y} L ${p2.x} ${p2.y}`;
+      g.append(svgEl('path',{d:d1,fill:'none',stroke:'#111','stroke-width':2.2}),svgEl('path',{d:d2,fill:'none',stroke:'#111','stroke-width':2.2}));
+      if(r.subtype==='identical'){
+        const t=.68;
+        g.appendChild(svgEl('line',{x1:apex.x+(p1.x-apex.x)*t,y1:apex.y+(p1.y-apex.y)*t,x2:apex.x+(p2.x-apex.x)*t,y2:apex.y+(p2.y-apex.y)*t,stroke:'#111','stroke-width':2}));
+      }
+      hitD=`M ${p1.x} ${p1.y} L ${apex.x} ${apex.y} L ${p2.x} ${p2.y}`;
     }else if(r.type === 'care'){
-      path = svgEl('path', {d:`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`,fill:'none',stroke:'#111','stroke-width':2.2,'marker-end':'url(#arrow)'});
+      path = svgEl('path', {d:hitD,fill:'none',stroke:'#111','stroke-width':2.2,'marker-end':'url(#arrow)'});
     }else if(r.type === 'conflict'){
       path = zigzagPath(p1,p2);
+      hitD=path.getAttribute('d');
     }else if(r.type === 'close'){
       const path2 = parallelLine(p1,p2,5);
-      g.appendChild(svgEl('path',{d:path2[0],fill:'none',stroke:'#111','stroke-width':2}));
-      g.appendChild(svgEl('path',{d:path2[1],fill:'none',stroke:'#111','stroke-width':2}));
-      path = null;
+      g.append(svgEl('path',{d:path2[0],fill:'none',stroke:'#111','stroke-width':2}),svgEl('path',{d:path2[1],fill:'none',stroke:'#111','stroke-width':2}));
+    }else if(r.type === 'closeConflict'){
+      const path2 = parallelLine(p1,p2,6);
+      g.append(svgEl('path',{d:path2[0],fill:'none',stroke:'#111','stroke-width':2}),svgEl('path',{d:path2[1],fill:'none',stroke:'#111','stroke-width':2}));
+      const zig=zigzagPath(p1,p2); zig.setAttribute('stroke-width','1.8'); g.appendChild(zig);
+    }else if(r.type === 'abuse'){
+      path = zigzagPath(p1,p2);
+      path.setAttribute('stroke','#b42318');
+      path.setAttribute('stroke-width','2.8');
+      path.setAttribute('marker-end','url(#redArrow)');
+      hitD=path.getAttribute('d');
     }else if(r.type === 'cutoff'){
-      path = svgEl('path',{d:`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`,fill:'none',stroke:'#111','stroke-width':2.2});
+      path = svgEl('path',{d:hitD,fill:'none',stroke:'#111','stroke-width':2.2});
       const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
       const ang=Math.atan2(p2.y-p1.y,p2.x-p1.x)+Math.PI/2;
       const dx=Math.cos(ang)*12, dy=Math.sin(ang)*12;
       g.appendChild(svgEl('line',{x1:mx-dx,y1:my-dy,x2:mx+dx,y2:my+dy,stroke:'#111','stroke-width':2.4}));
     }else{
-      path = svgEl('path', {d:`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':r.status==='cohabiting'?'8 5':''});
+      path = svgEl('path', {d:hitD,fill:'none',stroke:'#111','stroke-width':2.2,'stroke-dasharray':r.status==='cohabiting'?'8 5':''});
       const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
       if(r.status === 'separated' || r.status === 'divorced'){
         const count = r.status === 'divorced' ? 2 : 1;
@@ -505,13 +604,15 @@
     }
     if(path) g.prepend(path);
 
-    if(r.label){
+    const subtypeLabels={adopted:'收養',foster:'寄養',identical:'同卵',fraternal:'異卵',unknownTwins:'類型未明',physical:'身體暴力',emotional:'精神暴力',sexual:'性暴力',economic:'經濟控制',neglect:'疏忽／遺棄',otherAbuse:'其他暴力'};
+    const visibleLabel=r.label || subtypeLabels[r.subtype] || '';
+    if(visibleLabel){
       const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
-      const txt=svgEl('text',{x:mx,y:my-10,'font-size':15,'text-anchor':'middle',fill:'#111'});
-      txt.textContent=r.label;
+      const txt=svgEl('text',{x:mx,y:my-12,'font-size':15,'text-anchor':'middle',fill:r.type==='abuse'?'#b42318':'#111','font-weight':r.type==='abuse'?700:400});
+      txt.textContent=visibleLabel;
       g.appendChild(txt);
     }
-    const hit=svgEl('path',{d:path?.getAttribute('d') || `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`,fill:'none',stroke:'transparent','stroke-width':18});
+    const hit=svgEl('path',{d:hitD,fill:'none',stroke:'transparent','stroke-width':20});
     g.appendChild(hit);
     g.addEventListener('click',selectFromEvent);
     relationLayer.appendChild(g);
@@ -544,33 +645,71 @@
     let shape;
     if(n.sex==='male') shape=svgEl('rect',{x:-r,y:-r,width:n.size,height:n.size,...common});
     else if(n.sex==='female') shape=svgEl('circle',{cx:0,cy:0,r,...common});
-    else shape=svgEl('polygon',{points:`0,${-r} ${r},0 0,${r} ${-r},0`,...common});
+    else if(n.sex==='pregnancy') shape=svgEl('polygon',{points:`0,${-r} ${r},${r} ${-r},${r}`,...common});
+    else if(n.sex==='loss'){
+      const small=r*.82;
+      shape=svgEl('polygon',{points:`0,${-small} ${small},${small} ${-small},${small}`,fill:n.lossType==='miscarriage'?'#111':'#fff',stroke:'#111','stroke-width':2.4});
+    }else shape=svgEl('polygon',{points:`0,${-r} ${r},0 0,${r} ${-r},0`,...common});
     g.appendChild(shape);
+
     if(n.proband){
       let inner;
       if(n.sex==='male') inner=svgEl('rect',{x:-r+6,y:-r+6,width:n.size-12,height:n.size-12,fill:'none',stroke:'#111','stroke-width':1.7});
       else if(n.sex==='female') inner=svgEl('circle',{cx:0,cy:0,r:r-6,fill:'none',stroke:'#111','stroke-width':1.7});
+      else if(n.sex==='pregnancy'||n.sex==='loss') inner=svgEl('polygon',{points:`0,${-r+8} ${r-8},${r-8} ${-r+8},${r-8}`,fill:'none',stroke:'#111','stroke-width':1.7});
       else inner=svgEl('polygon',{points:`0,${-r+7} ${r-7},0 0,${r-7} ${-r+7},0`,fill:'none',stroke:'#111','stroke-width':1.7});
       g.appendChild(inner);
     }
-    if(n.deceased){
-      g.appendChild(svgEl('line',{x1:-r+5,y1:-r+5,x2:r-5,y2:r-5,stroke:'#111','stroke-width':2.3}));
-      g.appendChild(svgEl('line',{x1:-r+5,y1:r-5,x2:r-5,y2:-r+5,stroke:'#111','stroke-width':2.3}));
+
+    if(n.sex==='loss'){
+      const small=r*.82;
+      if(n.lossType==='abortion') g.appendChild(svgEl('line',{x1:-small*.55,y1:small*.42,x2:small*.55,y2:-small*.42,stroke:'#111','stroke-width':2.5}));
+      if(n.lossType==='stillbirth'){
+        g.append(svgEl('line',{x1:-small*.45,y1:-small*.2,x2:small*.45,y2:small*.55,stroke:'#111','stroke-width':2.4}),svgEl('line',{x1:-small*.45,y1:small*.55,x2:small*.45,y2:-small*.2,stroke:'#111','stroke-width':2.4}));
+      }
+      if(n.lossType==='unknown'){
+        const q=svgEl('text',{x:0,y:11,'font-size':23,'text-anchor':'middle',fill:'#111','font-weight':700});q.textContent='?';g.appendChild(q);
+      }
     }
-    if(n.age){
-      const age=svgEl('text',{x:0,y:8,'font-size':23,'text-anchor':'middle',fill:'#111','font-weight':500});
-      age.textContent=n.age;
-      g.appendChild(age);
+
+    if(n.deceased && !['pregnancy','loss'].includes(n.sex)){
+      g.append(svgEl('line',{x1:-r+5,y1:-r+5,x2:r-5,y2:r-5,stroke:'#111','stroke-width':2.3}),svgEl('line',{x1:-r+5,y1:r-5,x2:r-5,y2:-r+5,stroke:'#111','stroke-width':2.3}));
     }
-    const caption=[n.name,n.note].filter(Boolean).join('・');
+
+    if(n.sex==='pregnancy'){
+      const label=svgEl('text',{x:0,y:14,'font-size':18,'text-anchor':'middle',fill:'#111','font-weight':600});
+      label.textContent=n.gestationWeeks?`${n.gestationWeeks}週`:'孕';g.appendChild(label);
+    }else if(!['loss'].includes(n.sex) && n.age){
+      const age=svgEl('text',{x:0,y:8,'font-size':23,'text-anchor':'middle',fill:'#111','font-weight':500});age.textContent=n.age;g.appendChild(age);
+    }
+
+    const typeCaption=n.sex==='loss'?lossTypeName(n.lossType):'';
+    const caption=[n.name,typeCaption,n.note].filter(Boolean).join('・');
     if(caption){
-      const txt=svgEl('text',{x:0,y:r+25,'font-size':16,'text-anchor':'middle',fill:'#111'});
-      txt.textContent=caption;
-      g.appendChild(txt);
+      const txt=svgEl('text',{x:0,y:r+25,'font-size':16,'text-anchor':'middle',fill:'#111'});txt.textContent=caption;g.appendChild(txt);
     }
     g.addEventListener('pointerdown',startDrag);
     g.addEventListener('click',selectFromEvent);
     nodeLayer.appendChild(g);
+  }
+
+  function drawMetaLayer(){
+    const meta=state.meta||{};
+    if(meta.title){
+      const title=svgEl('text',{x:700,y:48,'font-size':30,'font-weight':700,'text-anchor':'middle',fill:'#111'});title.textContent=meta.title;metaLayer.appendChild(title);
+    }
+    if(meta.subtitle){
+      const sub=svgEl('text',{x:700,y:75,'font-size':16,'text-anchor':'middle',fill:'#667085'});sub.textContent=meta.subtitle;metaLayer.appendChild(sub);
+    }
+    if(meta.showRiskMarkers!==false){
+      state.nodes.filter(n=>n.risk).forEach(n=>{
+        const r=n.size/2;
+        const sx=n.x-r-46,sy=n.y-r-42;
+        const ex=n.x-r*.55,ey=n.y-r*.55;
+        metaLayer.appendChild(svgEl('path',{d:`M ${sx} ${sy} L ${ex} ${ey}`,fill:'none',stroke:'#b42318','stroke-width':3,'marker-end':'url(#redArrow)','pointer-events':'none'}));
+        const label=svgEl('text',{x:sx-4,y:sy-7,'font-size':14,'text-anchor':'middle',fill:'#b42318','font-weight':700,'pointer-events':'none'});label.textContent=n.riskNote||'風險';metaLayer.appendChild(label);
+      });
+    }
   }
 
   function drawText(t){
@@ -614,6 +753,7 @@
     const g=evt.currentTarget;
     state.selected={kind:g.dataset.kind,id:g.dataset.id};
     render();
+    if(window.matchMedia('(max-width:1080px)').matches) $('#rightPanel').classList.add('open');
   }
 
   function startDrag(evt){
@@ -704,32 +844,46 @@
 
   function renderNodeInspector(n){
     if(!n) return;
+    const isPregnancy=n.sex==='pregnancy', isLoss=n.sex==='loss';
     inspector.innerHTML=`
       <div class="stack">
         <div class="field"><label>姓名／代號</label><input data-k="name" value="${esc(n.name)}" placeholder="例如：案主、長男、A女" /></div>
         <div class="grid2">
-          <div class="field"><label>性別</label><select data-k="sex"><option value="male" ${n.sex==='male'?'selected':''}>男性</option><option value="female" ${n.sex==='female'?'selected':''}>女性</option><option value="unknown" ${n.sex==='unknown'?'selected':''}>性別未明</option></select></div>
-          <div class="field"><label>年齡</label><input data-k="age" value="${esc(n.age)}" inputmode="numeric" placeholder="例如：80" /></div>
+          <div class="field"><label>人物／事件類型</label><select data-k="sex"><option value="male" ${n.sex==='male'?'selected':''}>男性</option><option value="female" ${n.sex==='female'?'selected':''}>女性</option><option value="unknown" ${n.sex==='unknown'?'selected':''}>性別未明</option><option value="pregnancy" ${isPregnancy?'selected':''}>懷孕</option><option value="loss" ${isLoss?'selected':''}>流產／死產</option></select></div>
+          ${isPregnancy?`<div class="field"><label>孕週</label><input data-k="gestationWeeks" value="${esc(n.gestationWeeks)}" inputmode="numeric" placeholder="例如：20" /></div>`:`<div class="field"><label>年齡</label><input data-k="age" value="${esc(n.age)}" inputmode="numeric" placeholder="例如：80" /></div>`}
         </div>
+        ${isLoss?`<div class="field"><label>流產／死產類型</label><select data-k="lossType"><option value="unknown" ${n.lossType==='unknown'?'selected':''}>未明</option><option value="miscarriage" ${n.lossType==='miscarriage'?'selected':''}>自然流產</option><option value="abortion" ${n.lossType==='abortion'?'selected':''}>人工流產</option><option value="stillbirth" ${n.lossType==='stillbirth'?'selected':''}>死產</option></select></div>`:''}
         <div class="field"><label>備註</label><textarea data-k="note" placeholder="例如：在家照顧、主要照顧者">${esc(n.note)}</textarea></div>
         <label class="check"><input type="checkbox" data-k="proband" ${n.proband?'checked':''}/> 案主／個案（雙框）</label>
-        <label class="check"><input type="checkbox" data-k="deceased" ${n.deceased?'checked':''}/> 已歿（圖形內加叉）</label>
+        ${!isPregnancy&&!isLoss?`<label class="check"><input type="checkbox" data-k="deceased" ${n.deceased?'checked':''}/> 已歿（圖形內加叉）</label>`:''}
+        <label class="check"><input type="checkbox" data-k="risk" ${n.risk?'checked':''}/> 高風險／需注意（紅色箭頭）</label>
+        <div class="field"><label>風險標籤（選填）</label><input data-k="riskNote" value="${esc(n.riskNote)}" placeholder="例如：自傷風險、家暴風險" /></div>
         <div class="field"><label>符號大小</label><input type="range" min="42" max="84" value="${n.size}" data-k="size" /></div>
-        <div class="inspector-actions"><button class="btn danger" data-delete>刪除此人物</button></div>
+        <div class="inspector-actions"><button class="btn danger" data-delete>刪除此人物／事件</button></div>
       </div>`;
     bindInspector(n,'node');
   }
 
+  function relationSubtypeOptions(type,current=''){
+    const sets={
+      parent:[['biological','親生'],['adopted','收養'],['foster','寄養']],
+      twins:[['unknownTwins','類型未明'],['identical','同卵'],['fraternal','異卵']],
+      abuse:[['physical','身體暴力'],['emotional','精神暴力'],['sexual','性暴力'],['economic','經濟控制'],['neglect','疏忽／遺棄'],['otherAbuse','其他暴力']]
+    };
+    return (sets[type]||[]).map(([v,l])=>`<option value="${v}" ${current===v?'selected':''}>${l}</option>`).join('');
+  }
+
   function renderRelationInspector(r){
     if(!r) return;
+    const types=[['partner','婚姻／伴侶'],['parent','親子'],['twins','雙胞胎／多胞胎'],['care','照顧／支持箭頭'],['close','親密'],['conflict','衝突'],['closeConflict','親密但衝突'],['abuse','施暴／受暴'],['cutoff','關係中斷']];
+    const hasSubtype=['parent','twins','abuse'].includes(r.type);
     inspector.innerHTML=`
       <div class="stack">
-        <div class="field"><label>關係類型</label><select data-k="type">
-          ${[['partner','婚姻／伴侶'],['parent','親子'],['care','照顧／支持箭頭'],['conflict','衝突'],['close','親密'],['cutoff','關係中斷']].map(([v,l])=>`<option value="${v}" ${r.type===v?'selected':''}>${l}</option>`).join('')}
-        </select></div>
-        <div class="field"><label>伴侶狀態</label><select data-k="status"><option value="married" ${r.status==='married'?'selected':''}>婚姻</option><option value="cohabiting" ${r.status==='cohabiting'?'selected':''}>同居</option><option value="separated" ${r.status==='separated'?'selected':''}>分居</option><option value="divorced" ${r.status==='divorced'?'selected':''}>離婚</option></select></div>
+        <div class="field"><label>關係類型</label><select data-k="type">${types.map(([v,l])=>`<option value="${v}" ${r.type===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        ${r.type==='partner'?`<div class="field"><label>伴侶狀態</label><select data-k="status"><option value="married" ${r.status==='married'?'selected':''}>婚姻</option><option value="cohabiting" ${r.status==='cohabiting'?'selected':''}>同居</option><option value="separated" ${r.status==='separated'?'selected':''}>分居</option><option value="divorced" ${r.status==='divorced'?'selected':''}>離婚</option></select></div>`:''}
+        ${hasSubtype?`<div class="field"><label>關係細類</label><select data-k="subtype">${relationSubtypeOptions(r.type,r.subtype)}</select></div>`:''}
         <div class="field"><label>標籤</label><input data-k="label" value="${esc(r.label)}" placeholder="例如：主要照顧"/></div>
-        <div class="hint">起點：${esc(nodeLabel(getNode(r.from)||{}))}<br>終點：${esc(nodeLabel(getNode(r.to)||{}))}</div>
+        <div class="hint">起點：${esc(nodeLabel(getNode(r.from)||{}))}<br>終點：${esc(nodeLabel(getNode(r.to)||{}))}${r.type==='abuse'?'<br><strong>施暴關係的起點為施暴者，終點為受暴者。</strong>':''}</div>
         <div class="inspector-actions"><button class="btn danger" data-delete>刪除此關係</button></div>
       </div>`;
     bindInspector(r,'relation');
@@ -763,12 +917,17 @@
   function bindInspector(obj,kind){
     inspector.querySelectorAll('[data-k]').forEach(el=>{
       const event = (el.type==='checkbox'||el.tagName==='SELECT'||el.type==='range')?'change':'input';
+      let snapTaken=false;
+      const takeSnapshot=()=>{if(!snapTaken){snapshot();snapTaken=true;}};
+      el.addEventListener('focus',takeSnapshot,{once:true});
       el.addEventListener(event,()=>{
-        snapshot();
+        takeSnapshot();
         let val = el.type==='checkbox'?el.checked:el.value;
         if(['size','width','height','fontSize'].includes(el.dataset.k)) val=Number(val);
         obj[el.dataset.k]=val;
-        render(); persist();
+        if(kind==='relation' && el.dataset.k==='type') obj.subtype = val==='parent'?'biological':val==='twins'?'unknownTwins':val==='abuse'?'physical':'';
+        const keepInspector = event==='input';
+        render(keepInspector); persist();
       },{once:false});
     });
     inspector.querySelector('[data-delete]')?.addEventListener('click',()=>deleteSelected(kind,obj.id));
@@ -786,8 +945,8 @@
   }
 
   function updateStatus(){
-    const n=state.nodes.length,r=state.relations.length;
-    statusText.textContent=`人物 ${n}｜關係 ${r}｜點選可編輯，拖曳可移動`;
+    const n=state.nodes.length,r=state.relations.length,risk=state.nodes.filter(x=>x.risk).length;
+    statusText.textContent=`人物／事件 ${n}｜關係 ${r}${risk?`｜風險標記 ${risk}`:''}｜點選可編輯，拖曳可移動`;
   }
 
   function populateRelationSelects(){
@@ -798,6 +957,11 @@
 
   function parseAge(text){
     const m=String(text).match(/(\d{1,3})\s*歲?/);
+    return m?m[1]:'';
+  }
+
+  function parseWeeks(text){
+    const m=String(text).match(/(\d{1,2})\s*週/);
     return m?m[1]:'';
   }
 
@@ -813,7 +977,7 @@
     let proband=null, spouse=null;
     const children=[];
     const newNode=(p)=>{const n=normalizeNode({...p,id:uid('n')});nodes.push(n);return n;};
-    const rel=(a,b,type='partner',opts={})=>relations.push({id:uid('r'),from:a.id,to:b.id,type,status:opts.status||'married',label:opts.label||''});
+    const rel=(a,b,type='partner',opts={})=>relations.push({id:uid('r'),from:a.id,to:b.id,type,status:opts.status||'married',subtype:opts.subtype||(type==='parent'?'biological':''),label:opts.label||''});
 
     for(const line of lines){
       const [headRaw,...restParts]=line.split(/[：:]/);
@@ -825,6 +989,11 @@
       }else if(/配偶/.test(head)){
         const sex=/女/.test(body)?'female':/男/.test(body)?'male':'unknown';
         spouse=newNode({name:'配偶',sex,age:parseAge(body),deceased:/已歿|死亡/.test(body)});
+      }else if(/懷孕/.test(head+body)){
+        newNode({name:head||'懷孕',sex:'pregnancy',gestationWeeks:parseWeeks(body),note:body.replace(/懷孕|\d+\s*週/g,'').replace(/[，,]/g,' ').trim()});
+      }else if(/流產|死產/.test(head+body)){
+        const lossType=/死產/.test(head+body)?'stillbirth':/人工/.test(head+body)?'abortion':/自然/.test(head+body)?'miscarriage':'unknown';
+        newNode({name:head||lossTypeName(lossType),sex:'loss',lossType,note:body.replace(/自然流產|人工流產|流產|死產/g,'').replace(/[，,]/g,' ').trim()});
       }else if(/長|次|三|四|五|六|七|八|九|么/.test(head)){
         const sex=inferSex(head,body);
         const child=newNode({name:head,sex,age:parseAge(body),note:/未婚/.test(body)?'未婚':''});
@@ -888,7 +1057,7 @@
     state.nodes=parsed.nodes;
     state.relations=parsed.relations;
     autoLayout(false);
-    render();persist();showToast('已產生家系圖，可繼續拖曳與編輯');
+    render();persist();syncMetaControls();showToast('已產生家系圖，可繼續拖曳與編輯');
   }
 
   function autoLayout(withSnapshot=true){
@@ -1042,7 +1211,7 @@
       try{
         const data=JSON.parse(reader.result);
         if(!data.nodes||!data.relations) throw new Error('格式錯誤');
-        snapshot();state={...defaultState(),...data,selected:null};render();persist();showToast('專案已載入');
+        snapshot();state=normalizeState(data);render();persist();syncMetaControls();showToast('專案已載入');
       }catch(e){showToast('無法載入：檔案格式不正確')}
     };
     reader.readAsText(file);
@@ -1064,6 +1233,18 @@
     canvas.setAttribute('viewBox',`${minX-(vw-w)/2} ${minY-(vh-h)/2} ${vw} ${vh}`);updateZoomButton();
   }
   function updateZoomButton(){const vb=canvas.viewBox.baseVal;$('#zoomResetBtn').textContent=Math.round(1400/vb.width*100)+'%'}
+
+  function syncMetaControls(){
+    $('#metaTitle').value=state.meta?.title||'';
+    $('#metaSubtitle').value=state.meta?.subtitle||'';
+    $('#showRiskMarkers').checked=state.meta?.showRiskMarkers!==false;
+  }
+  function updateMeta(key,value){
+    snapshot();state.meta={...(state.meta||{}),[key]:value};render();persist();
+  }
+  $('#metaTitle').addEventListener('input',e=>updateMeta('title',e.target.value));
+  $('#metaSubtitle').addEventListener('input',e=>updateMeta('subtitle',e.target.value));
+  $('#showRiskMarkers').addEventListener('change',e=>updateMeta('showRiskMarkers',e.target.checked));
 
   $('#parseBtn').addEventListener('click',()=>applyParsed($('#quickInput').value));
   $('#sampleBtn').addEventListener('click',()=>{$('#quickInput').value=`個案：女性，80歲，在家照顧\n配偶：男性，已歿\n長男：55歲，婚配三次，第一次有1子28歲，第二次無子女，第三次有1女16歲\n次女：50歲，未婚\n三女：48歲，已婚，育有一子(15歲)`;});
@@ -1087,17 +1268,36 @@
   const relationDialog=$('#relationDialog');
   $('#addRelationBtn').addEventListener('click',()=>{
     if(state.nodes.length<2) return showToast('至少需要兩位人物');
-    populateRelationSelects();relationDialog.showModal();
+    populateRelationSelects();updateRelationDialogFields();relationDialog.showModal();
   });
   $('#cancelRelationBtn').addEventListener('click',()=>relationDialog.close());
-  $('#relationType').addEventListener('change',()=>$('#partnerStatusField').style.display=$('#relationType').value==='partner'?'grid':'none');
+  function updateRelationDialogFields(){
+    const type=$('#relationType').value;
+    $('#partnerStatusField').style.display=type==='partner'?'grid':'none';
+    const subtypeField=$('#relationSubtypeField');
+    const config={
+      parent:{label:'親子關係細類',options:[['biological','親生'],['adopted','收養'],['foster','寄養']],hint:'收養以長虛線、寄養以點狀虛線表示。'},
+      twins:{label:'雙胞胎類型',options:[['unknownTwins','類型未明'],['identical','同卵'],['fraternal','異卵']],hint:'請將起點與終點選為兩名雙胞胎手足。'},
+      abuse:{label:'施暴／受暴類型',options:[['physical','身體暴力'],['emotional','精神暴力'],['sexual','性暴力'],['economic','經濟控制'],['neglect','疏忽／遺棄'],['otherAbuse','其他暴力']],hint:'起點＝施暴者，終點＝受暴者；圖面以紅色鋸齒箭頭表示。'}
+    }[type];
+    subtypeField.style.display=config?'grid':'none';
+    if(config){
+      $('#relationSubtypeLabel').textContent=config.label;
+      $('#relationSubtype').innerHTML=config.options.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+      $('#relationSubtypeHint').textContent=config.hint;
+    }
+  }
+  $('#relationType').addEventListener('change',updateRelationDialogFields);
   $('#confirmRelationBtn').addEventListener('click',()=>{
     const from=$('#relationFrom').value,to=$('#relationTo').value;
     if(from===to) return showToast('起點與終點不能相同');
     snapshot();
-    addRelation(from,to,$('#relationType').value,{status:$('#partnerStatus').value,label:$('#relationLabel').value.trim()});
+    addRelation(from,to,$('#relationType').value,{status:$('#partnerStatus').value,subtype:$('#relationSubtypeField').style.display==='none'?'':$('#relationSubtype').value,label:$('#relationLabel').value.trim()});
     relationDialog.close();render();persist();
   });
+
+  $('#inspectorToggleBtn').addEventListener('click',()=>$('#rightPanel').classList.toggle('open'));
+  $('#closeInspectorBtn').addEventListener('click',()=>$('#rightPanel').classList.remove('open'));
 
   document.addEventListener('keydown',evt=>{
     const tag=document.activeElement?.tagName;
@@ -1109,6 +1309,7 @@
   });
 
   restore();
+  syncMetaControls();
   if(!state.nodes.length){ applyParsed($('#quickInput').value); history=[]; future=[]; }
   else render();
 })();
