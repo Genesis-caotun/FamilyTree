@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.2.0</title>
+<title>家系圖快速製作器 V5.2.1</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -170,7 +170,7 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.2.0</span></h1>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.2.1</span></h1>
         <p>台灣社工家系圖排列｜手繪家庭範圍｜服務單位橢圓｜自由箭頭｜離線可用</p>
       </div>
     </div>
@@ -301,7 +301,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.2.0</strong><span>2026-07-28</span><p>以手繪閉環取代矩形外框，新增可輸入醫院／服務單位名稱的橢圓，以及可自由拉伸方向與長度的箭頭。</p></div>
+        <div class="version-card"><strong>版本 5.2.1</strong><span>2026-07-28</span><p>伴侶關係符號調整：離婚改為 X，分居改為單一斜線；保留畫筆閉環、服務單位橢圓與自由箭頭。</p></div>
       </section>
     </aside>
 
@@ -400,10 +400,11 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.2.0</div>
+  <div class="dialog-head">家系圖快速製作器 V5.2.1</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V5.2.1 關係符號：</strong>離婚以 X 顯示，分居以單一斜線顯示。</li>
       <li><strong>V5.2.0 圖形工具：</strong>以畫筆圈選取代矩形外框，放開後自動平滑閉環；新增可輸入文字的醫院／服務單位橢圓，以及端點可自由拉伸的箭頭。</li>
       <li><strong>V5.1.2 解析強化：</strong>子女與後代分支的多次婚配，可辨識各任配偶年齡，例如「第一次配偶58歲」；單次婚姻也支援「配偶52歲」。</li>
       <li><strong>V5.1.1 操作修正：</strong>第一次點人物只選取並立即顯示藍色虛線框與右側屬性；人物已選取後，第二次按住才會移動。手機／平板為第二次長按後拖曳。</li>
@@ -442,7 +443,7 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '5.2.0';
+  const APP_VERSION = '5.2.1';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
@@ -1143,11 +1144,21 @@
         g.appendChild(svgEl('line',{x1:mid.x-dx,y1:mid.y-dy,x2:mid.x+dx,y2:mid.y+dy,stroke:'#111','stroke-width':2.4}));
       }
       if(r.type==='partner'&&(r.status==='separated'||r.status==='divorced')){
-        const count=r.status==='divorced'?2:1;
-        for(let i=0;i<count;i++){
-          const off=(i-(count-1)/2)*8,cx=mid.x+Math.cos(mid.angle)*off,cy=mid.y+Math.sin(mid.angle)*off;
-          const dx=Math.cos(mid.angle+Math.PI/2)*10,dy=Math.sin(mid.angle+Math.PI/2)*10;
-          g.appendChild(svgEl('line',{x1:cx-dx,y1:cy-dy,x2:cx+dx,y2:cy+dy,stroke:'#111','stroke-width':2.3}));
+        const markerLength=13;
+        const drawMarkerLine=(angle)=>{
+          const dx=Math.cos(angle)*markerLength,dy=Math.sin(angle)*markerLength;
+          g.appendChild(svgEl('line',{
+            x1:mid.x-dx,y1:mid.y-dy,x2:mid.x+dx,y2:mid.y+dy,
+            stroke:'#111','stroke-width':2.5,'stroke-linecap':'round'
+          }));
+        };
+        if(r.status==='separated'){
+          // 分居：以一條斜線穿過伴侶關係線。
+          drawMarkerLine(mid.angle+Math.PI/4);
+        }else{
+          // 離婚：以兩條交叉斜線形成清楚的 X。
+          drawMarkerLine(mid.angle+Math.PI/4);
+          drawMarkerLine(mid.angle-Math.PI/4);
         }
       }
     }
