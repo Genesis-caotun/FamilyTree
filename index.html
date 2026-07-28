@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.3.0</title>
+<title>家系圖快速製作器 V5.3.1</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -193,7 +193,7 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.3.0</span></h1>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.3.1</span></h1>
         <p>台灣社工家系圖排列｜家系圖轉文字｜掃描圖離線描圖｜離線可用</p>
       </div>
     </div>
@@ -354,7 +354,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.3.0</strong><span>2026-07-28</span><p>新增家系圖逆向轉文字，以及手繪／掃描圖片離線描圖工作區；底圖可調整透明度、縮放、位置與匯出設定。</p></div>
+        <div class="version-card"><strong>版本 5.3.1</strong><span>2026-07-28</span><p>優化圖面轉文字：服務單位橢圓若以箭頭連到人物，會合併輸出為「某單位提供某人服務」，不再重複列出單位與圖面箭頭。</p></div>
       </section>
     </aside>
 
@@ -454,10 +454,11 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.3.0</div>
+  <div class="dialog-head">家系圖快速製作器 V5.3.1</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V5.3.1 服務敘述：</strong>服務單位橢圓與人物以箭頭連接時，逆向文字會自動合併為「某單位提供某人服務」。</li>
       <li><strong>V5.3.0 逆向文字：</strong>可將目前可編輯家系圖輸出為精簡、社工敘述或條列格式，並複製或下載文字檔。</li>
       <li><strong>V5.3.0 掃描圖描圖：</strong>可離線匯入手繪／掃描圖片，調整透明度、縮放與位置後描圖；正式匯出預設排除底圖。</li>
       <li><strong>V5.2.1 關係符號：</strong>離婚以 X 顯示，分居以單一斜線顯示。</li>
@@ -525,7 +526,7 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '5.3.0';
+  const APP_VERSION = '5.3.1';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
@@ -2070,9 +2071,16 @@
     const fromChildren=new Set(parentRels.filter(x=>x.from===r.from).map(x=>x.to));return parentRels.filter(x=>x.from===r.to&&fromChildren.has(x.to)).map(x=>getNode(x.to)).filter(Boolean);
   }
   function pointInPolygon(point,polygon){let inside=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j],cross=((a.y>point.y)!==(b.y>point.y))&&(point.x<(b.x-a.x)*(point.y-a.y)/((b.y-a.y)||1e-9)+a.x);if(cross)inside=!inside;}return inside;}
-  function nearestArrowObject(x,y,anonymous){
-    const candidates=[];state.nodes.forEach(n=>candidates.push({x:n.x,y:n.y,label:reverseName(n,anonymous),radius:n.size/2+70}));state.ellipses.forEach(e=>candidates.push({x:e.x,y:e.y,label:e.text||'服務單位',radius:Math.max(e.width,e.height)/2+50}));
-    let best=null;for(const c of candidates){const d=Math.hypot(x-c.x,y-c.y);if(d<=c.radius&&(!best||d<best.d))best={...c,d};}return best?.label||'畫布位置';
+  function nearestArrowEntity(x,y,anonymous){
+    const candidates=[];
+    state.nodes.forEach(n=>candidates.push({kind:'node',id:n.id,x:n.x,y:n.y,label:reverseName(n,anonymous),radius:n.size/2+70}));
+    state.ellipses.forEach(e=>candidates.push({kind:'service',id:e.id,x:e.x,y:e.y,label:e.text||'服務單位',radius:Math.max(e.width,e.height)/2+50}));
+    let best=null;
+    for(const c of candidates){
+      const d=Math.hypot(x-c.x,y-c.y);
+      if(d<=c.radius&&(!best||d<best.d))best={...c,d};
+    }
+    return best||{kind:'canvas',id:'',label:'畫布位置'};
   }
   function reverseData(options={}){
     const anonymous=!!options.anonymous,includeNotes=options.includeNotes!==false,includeRisk=options.includeRisk!==false,includeVisuals=options.includeVisuals!==false,gen=computeGenerationMap();
@@ -2080,10 +2088,26 @@
     const partnerRels=state.relations.filter(r=>r.type==='partner'),parentRels=state.relations.filter(r=>r.type==='parent'),otherRels=state.relations.filter(r=>!['partner','parent'].includes(r.type));
     const representedParents=new Set();partnerRels.forEach(r=>partnerChildren(r).forEach(c=>{parentRels.filter(p=>p.to===c.id&&(p.from===r.from||p.from===r.to)).forEach(p=>representedParents.add(p.id));}));
     const regions=includeVisuals?state.regions.map(r=>({label:r.label||'同住／家庭範圍',members:state.nodes.filter(n=>pointInPolygon({x:n.x,y:n.y},r.points)).map(n=>reverseName(n,anonymous))})):[];
-    const services=includeVisuals?state.ellipses.map(e=>e.text||'服務醫院／單位'):[];
-    const arrows=includeVisuals?state.arrows.map(a=>`${nearestArrowObject(a.x1,a.y1,anonymous)} → ${nearestArrowObject(a.x2,a.y2,anonymous)}`):[];
+    const linkedServiceIds=new Set(),serviceLinkMap=new Map(),arrows=[];
+    if(includeVisuals){
+      state.arrows.forEach(a=>{
+        const from=nearestArrowEntity(a.x1,a.y1,anonymous),to=nearestArrowEntity(a.x2,a.y2,anonymous);
+        const service=from.kind==='service'?from:to.kind==='service'?to:null;
+        const person=from.kind==='node'?from:to.kind==='node'?to:null;
+        if(service&&person){
+          linkedServiceIds.add(service.id);
+          if(!serviceLinkMap.has(service.id))serviceLinkMap.set(service.id,{service:service.label,recipients:[]});
+          const entry=serviceLinkMap.get(service.id);
+          if(!entry.recipients.includes(person.label))entry.recipients.push(person.label);
+        }else{
+          arrows.push(`${from.label} → ${to.label}`);
+        }
+      });
+    }
+    const serviceLinks=[...serviceLinkMap.values()];
+    const services=includeVisuals?state.ellipses.filter(e=>!linkedServiceIds.has(e.id)).map(e=>e.text||'服務醫院／單位'):[];
     const texts=includeVisuals?state.texts.map(t=>t.text).filter(Boolean):[];
-    return{anonymous,includeNotes,includeRisk,includeVisuals,gen,people,partnerRels,parentRels:parentRels.filter(r=>!representedParents.has(r.id)),otherRels,regions,services,arrows,texts};
+    return{anonymous,includeNotes,includeRisk,includeVisuals,gen,people,partnerRels,parentRels:parentRels.filter(r=>!representedParents.has(r.id)),otherRels,regions,services,serviceLinks,arrows,texts};
   }
   function generateCompactText(options={}){
     const d=reverseData(options),lines=[];lines.push(`家系圖：${state.meta?.title||'家系圖'}`);if(state.meta?.subtitle)lines.push(`副標題／案號：${state.meta.subtitle}`);lines.push('');
@@ -2094,7 +2118,13 @@
     appendVisualText(lines,d);return lines.join('\n').trim();
   }
   function appendVisualText(lines,d){
-    if(!d.includeVisuals)return;if(d.regions.length||d.services.length||d.arrows.length||d.texts.length)lines.push('','【家庭範圍與服務資源】');d.regions.forEach(r=>lines.push(`${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));if(d.services.length)lines.push(`服務醫院／單位：${d.services.join('、')}`);d.arrows.forEach(a=>lines.push(`圖面箭頭：${a}`));d.texts.forEach(t=>lines.push(`圖面文字：${t}`));
+    if(!d.includeVisuals)return;
+    if(d.regions.length||d.services.length||d.serviceLinks.length||d.arrows.length||d.texts.length)lines.push('','【家庭範圍與服務資源】');
+    d.regions.forEach(r=>lines.push(`${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));
+    d.serviceLinks.forEach(link=>lines.push(`${link.service}提供${link.recipients.join('、')}服務`));
+    if(d.services.length)lines.push(`服務醫院／單位：${d.services.join('、')}`);
+    d.arrows.forEach(a=>lines.push(`圖面箭頭：${a}`));
+    d.texts.forEach(t=>lines.push(`圖面文字：${t}`));
   }
   function generateNarrativeText(options={}){
     const d=reverseData(options),paragraphs=[];paragraphs.push(`${state.meta?.title||'本家系圖'}共記錄${d.people.length}位人物或家庭事件，包含${d.partnerRels.length}組伴侶關係及${state.relations.filter(r=>r.type==='parent').length}筆親子關係。`);
@@ -2102,14 +2132,29 @@
     d.partnerRels.forEach(r=>{const a=getNode(r.from),b=getNode(r.to),children=partnerChildren(r);let s=`${reverseName(a,d.anonymous)}與${reverseName(b,d.anonymous)}為${partnerStatusText(r.status)}關係`;if(r.label)s+=`，關係註記為「${r.label}」`;s+=children.length?`，兩人登錄之子女為${children.map(c=>reverseName(c,d.anonymous)).join('、')}。`:'，目前圖面未登錄共同子女。';paragraphs.push(s);});
     d.parentRels.forEach(r=>paragraphs.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}之間為${parentSubtypeText(r.subtype)}親子關係${r.label?`，註記為「${r.label}」`:''}。`));
     d.otherRels.forEach(r=>paragraphs.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}之間標示為${relationTextName(r)}${r.label?`，註記為「${r.label}」`:''}。`));
-    if(d.includeVisuals){d.regions.forEach(r=>paragraphs.push(`${r.label}包含${r.members.length?r.members.join('、'):'尚未判定之成員'}。`));if(d.services.length)paragraphs.push(`圖面所列服務醫院或單位包括${d.services.join('、')}。`);d.arrows.forEach(a=>paragraphs.push(`圖面另以箭頭標示${a}。`));if(d.texts.length)paragraphs.push(`其他圖面說明包括：${d.texts.join('；')}。`);}
+    if(d.includeVisuals){
+      d.regions.forEach(r=>paragraphs.push(`${r.label}包含${r.members.length?r.members.join('、'):'尚未判定之成員'}。`));
+      d.serviceLinks.forEach(link=>paragraphs.push(`${link.service}提供${link.recipients.join('、')}服務。`));
+      if(d.services.length)paragraphs.push(`圖面所列但未連結特定人物的服務醫院或單位包括${d.services.join('、')}。`);
+      d.arrows.forEach(a=>paragraphs.push(`圖面另以箭頭標示${a}。`));
+      if(d.texts.length)paragraphs.push(`其他圖面說明包括：${d.texts.join('；')}。`);
+    }
     return paragraphs.join('\n\n');
   }
   function generateListText(options={}){
     const d=reverseData(options),lines=[`【${state.meta?.title||'家系圖'}】`,'','一、人物／事件'];d.people.forEach(n=>lines.push(`• 第${(d.gen.get(n.id)||0)+1}代｜${reverseName(n,d.anonymous)}｜${reverseNodeDetails(n,d)}`));
     lines.push('','二、伴侶關係');if(!d.partnerRels.length)lines.push('• 無');d.partnerRels.forEach(r=>{const children=partnerChildren(r);lines.push(`• ${reverseName(getNode(r.from),d.anonymous)} ↔ ${reverseName(getNode(r.to),d.anonymous)}｜${partnerStatusText(r.status)}${r.label?`｜${r.label}`:''}${children.length?`｜子女：${children.map(c=>reverseName(c,d.anonymous)).join('、')}`:''}`);});
     lines.push('','三、親子與其他關係');if(!d.parentRels.length&&!d.otherRels.length)lines.push('• 無其他未列關係');d.parentRels.forEach(r=>lines.push(`• ${parentSubtypeText(r.subtype)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));d.otherRels.forEach(r=>lines.push(`• ${relationTextName(r)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));
-    if(d.includeVisuals){lines.push('','四、家庭範圍與服務資源');if(!d.regions.length&&!d.services.length&&!d.arrows.length&&!d.texts.length)lines.push('• 無');d.regions.forEach(r=>lines.push(`• ${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));d.services.forEach(s=>lines.push(`• 服務單位：${s}`));d.arrows.forEach(a=>lines.push(`• 箭頭：${a}`));d.texts.forEach(t=>lines.push(`• 圖面文字：${t}`));}return lines.join('\n');
+    if(d.includeVisuals){
+      lines.push('','四、家庭範圍與服務資源');
+      if(!d.regions.length&&!d.services.length&&!d.serviceLinks.length&&!d.arrows.length&&!d.texts.length)lines.push('• 無');
+      d.regions.forEach(r=>lines.push(`• ${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));
+      d.serviceLinks.forEach(link=>lines.push(`• ${link.service}提供${link.recipients.join('、')}服務`));
+      d.services.forEach(s=>lines.push(`• 服務單位：${s}`));
+      d.arrows.forEach(a=>lines.push(`• 箭頭：${a}`));
+      d.texts.forEach(t=>lines.push(`• 圖面文字：${t}`));
+    }
+    return lines.join('\n');
   }
   function reverseTextOptions(){return{includeNotes:$('#reverseIncludeNotes').checked,includeRisk:$('#reverseIncludeRisk').checked,includeVisuals:$('#reverseIncludeVisuals').checked,anonymous:$('#reverseAnonymize').checked};}
   function refreshReverseText(){const format=$('#reverseFormat').value,opts=reverseTextOptions();const result=format==='narrative'?generateNarrativeText(opts):format==='list'?generateListText(opts):generateCompactText(opts);$('#reverseTextOutput').value=result;$('#reverseSummary').textContent=`已轉換 ${state.nodes.length} 位人物／事件、${state.relations.length} 筆關係、${state.regions.length+state.ellipses.length+state.arrows.length} 個圖樣。文字可再手動修訂。`;return result;}
