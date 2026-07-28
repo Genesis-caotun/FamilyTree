@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.1.0</title>
-<link rel="stylesheet" href="styles.css?v=5.1.0" />
+<title>家系圖快速製作器 V5.1.1</title>
+<link rel="stylesheet" href="styles.css?v=5.1.1" />
 </head>
 <body>
 <div class="app">
@@ -12,7 +12,7 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.1.0</span></h1>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.1.1</span></h1>
         <p>台灣社工家系圖排列｜同代同列｜多次婚配子女精準歸屬｜婚姻線中點連接｜離線可用</p>
       </div>
     </div>
@@ -100,6 +100,7 @@
           </div>
           <div class="setting-card" id="touchSettingCard">
             <label class="check"><input type="checkbox" id="touchLongPress" checked /> 觸控長按後拖曳</label>
+            <div class="hint"><strong>操作方式：</strong>第一次點人物只選取並顯示藍色虛線框；已選取後，桌面再次按住拖曳，手機／平板再次長按後拖曳。</div>
             <div class="setting-line"><span class="hint">手機／平板可避免輕觸時誤移動</span><select id="nudgeStep" aria-label="微調距離"><option value="2">微調 2px</option><option value="10">微調 10px</option><option value="20">網格 20px</option></select></div>
           </div>
           <div class="grid2">
@@ -139,7 +140,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.1.0</strong><span>2026-07-28</span><p>修正多次婚配家庭：每名子女綁定正確婚姻聯結，第三任配偶之子女會從該段婚姻線的水平中點向下連接。</p></div>
+        <div class="version-card"><strong>版本 5.1.1</strong><span>2026-07-28</span><p>改善人物操作：第一次點選只顯示虛線框與屬性；第二次按住才移動。手機／平板需再次長按後拖曳。</p></div>
       </section>
     </aside>
 
@@ -151,7 +152,7 @@
         <button class="btn small" id="fitBtn">適合畫面</button>
         <button class="btn small" id="gridToggleBtn" type="button" aria-pressed="true" title="切換 20px 網格吸附">網格：開</button>
       </div>
-      <div class="workspace-status" id="statusText">點選物件可編輯；拖曳可移動</div>
+      <div class="workspace-status" id="statusText">點一下選取；再次按住拖曳</div>
       <div id="canvasWrap">
         <svg id="canvas" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg" aria-label="家系圖畫布">
           <defs>
@@ -235,10 +236,11 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.1.0</div>
+  <div class="dialog-head">家系圖快速製作器 V5.1.1</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V5.1.1 操作修正：</strong>第一次點人物只選取並立即顯示藍色虛線框與右側屬性；人物已選取後，第二次按住才會移動。手機／平板為第二次長按後拖曳。</li>
       <li><strong>V5.1 修正：</strong>每名子女綁定正確的婚姻／伴侶聯結，第三任配偶所生子女不再只接到核心父／母節點。</li>
       <li>子女主幹固定由該段婚姻線的最長水平線段中點向下。</li>
       <li>舊版專案首次載入時，會修補可明確判定的缺漏父母連線並重新同代對齊。</li>
@@ -255,6 +257,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=5.1.0" defer></script>
+<script src="app.js?v=5.1.1" defer></script>
 </body>
 </html>
