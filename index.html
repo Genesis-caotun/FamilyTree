@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V6.1.2</title>
+<title>家系圖快速製作器 V6.2.0</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -239,6 +239,9 @@
 
 @media (max-width:720px){.reverse-grid{grid-template-columns:1fr}.reverse-output textarea{min-height:330px}}
 @media print{#referenceLayer.reference-not-export{display:none!important}}
+.retired-feature,#smartScanDialog,#aiAssistDialog{display:none!important}
+.diagram-text-card{display:grid;gap:9px}
+.diagram-text-card .btn{width:100%}
 
 </style>
 </head>
@@ -248,14 +251,14 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V6.1.2</span></h1>
-        <p>台灣社工家系圖排列｜本機辨識＋選配 AI 協助｜人工確認｜離線核心可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V6.2.0</span></h1>
+        <p>台灣社工家系圖排列｜文字與圖面雙向轉換｜完全離線使用</p>
       </div>
     </div>
     <div class="header-actions">
       <button class="btn small privacy-toggle" id="anonymizeBtn" type="button" aria-pressed="false">匿名化：關</button>
       <button class="btn small" id="versionBtn" type="button">版本說明</button>
-      <button class="btn small" id="reverseTextBtn" type="button">轉成文字</button>
+      <button class="btn small" id="reverseTextBtn" type="button">圖面轉文字</button>
       <button class="btn small" id="saveProjectBtn">儲存專案</button>
       <label class="btn small" for="loadProjectInput">載入專案</label>
       <input class="file-input" id="loadProjectInput" type="file" accept="application/json" />
@@ -297,6 +300,14 @@
       </section>
 
       <section class="section">
+        <h3>圖面轉文字</h3>
+        <div class="diagram-text-card">
+          <button class="btn primary" id="diagramToTextBtn" type="button">將目前家系圖轉成文字</button>
+          <p class="hint">直接讀取目前可編輯的家系圖資料，轉成精簡紀錄、社工敘述或社工口語紀錄。此功能不是圖片辨識，不會上傳任何資料。</p>
+        </div>
+      </section>
+
+      <section class="section retired-feature" aria-hidden="true" inert>
         <h3>掃描圖描圖工作區 <span class="scan-badge">離線</span> <span class="ai-badge">AI 選配</span></h3>
         <div class="reference-file-row">
           <label class="btn primary small" for="referenceImageInput">匯入手繪／掃描圖片</label>
@@ -323,7 +334,7 @@
           </div>
           <label class="check"><input type="checkbox" id="referenceIncludeExport" /> 匯出 SVG／PNG／PDF 時包含掃描底圖</label>
         </div>
-        <p class="hint tool-hint"><strong>V6.1.2 智慧辨識：</strong>預設先在目前瀏覽器進行本機圖形與文字辨識；另可主動開啟「AI 協助判讀」，由管理者預先設定的服務直接處理已遮蔽縮圖；一般使用者不必輸入 Worker 網址。AI 結果只會加入確認清單，不會直接改動正式家系圖。</p>
+        <p class="hint tool-hint"><strong>已停用功能：</strong>預設先在目前瀏覽器進行本機圖形與文字辨識；另可主動開啟「AI 協助判讀」，由管理者預先設定的服務直接處理已遮蔽縮圖；一般使用者不必輸入 Worker 網址。AI 結果只會加入確認清單，不會直接改動正式家系圖。</p>
       </section>
 
       <section class="section">
@@ -408,11 +419,10 @@
           <div class="hint">此功能不會刪除原始姓名，只改變畫布顯示與 SVG／PNG／PDF 輸出。JSON 專案仍保留原始資料，請妥善保管。</div>
         </div>
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
-        <div class="privacy-critical"><strong>雲端 AI 警訊：</strong>姓名、電話、地址、身分證字號、病歷、診斷、家暴、兒少與其他可識別個案資訊，不得在未遮蔽、未取得適法依據或未符合機構規範時上傳至外部 AI。即使已匿名，仍須確認人物關係組合不會反向識別特定家庭。</div>
         <div class="legal-notice" style="margin-top:9px"><strong>授權與著作權：</strong>本軟體由騰元提供免費使用。未經授權，任何人不得重製、修改後販售、出租、收費提供、再授權或以其他方式用於營利；軟體著作權及相關權利均予保留。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 6.1.1</strong><span>2026-07-28</span><p>新增一般使用者一鍵 AI 模式、服務狀態檢查、管理者進階端點設定與設定檔產生精靈；保留匿名化遮蔽、人工確認及個資警示。</p></div>
+        <div class="version-card"><strong>版本 6.2.0</strong><span>2026-07-28</span><p>取消掃描底圖、圖片上傳、本機辨識與雲端 AI 判讀，保留家系圖雙向文字轉換；新增社工口語紀錄模式。</p></div>
       </section>
     </aside>
 
@@ -456,7 +466,7 @@
 
     <aside class="panel right-panel" id="rightPanel">
       <div class="panel-title panel-title-row"><span>屬性編輯</span><button class="panel-close" id="closeInspectorBtn">關閉</button></div>
-      <div id="inspector" class="empty">請先點選人物、關係線、文字、手繪範圍、服務單位、箭頭或掃描底圖。</div>
+      <div id="inspector" class="empty">請先點選人物、關係線、文字、手繪範圍、服務單位或箭頭。</div>
     </aside>
   </main>
 </div>
@@ -512,18 +522,15 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V6.1.2</div>
+  <div class="dialog-head">家系圖快速製作器 V6.2.0</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
-      <li><strong>V6.1.2 一鍵 AI 模式：</strong>管理者只需部署並設定一次 Cloudflare Worker，一般使用者不再輸入網址；系統會顯示服務狀態並在失敗時保留本機辨識結果。</li>
-      <li><strong>V6.1.2 匿名化上傳：</strong>新增 OCR 文字區自動遮蔽、手動畫面遮蔽框、上傳縮圖預覽、強制個資風險同意與工作階段端點設定。</li>
-      <li><strong>V6.1.2 授權警語：</strong>標示由騰元提供免費使用，禁止未經授權重製、修改後營利、轉售、收費提供或再授權。</li>
-      <li><strong>V6.0.0 智慧掃描辨識：</strong>新增離線影像前處理、常見符號候選偵測、伴侶／親子／服務箭頭關係建議、信心分數與人工確認清單。辨識後可選擇覆蓋或加入目前圖面。</li>
-      <li><strong>V6.0.0 隱私設計：</strong>智慧辨識預設完全在瀏覽器執行，不會自動上傳圖片；瀏覽器支援 TextDetector 時可嘗試本機文字偵測，不支援時仍可手動補正姓名與年齡。</li>
+      <li><strong>V6.2.0 功能精簡：</strong>取消掃描底圖、圖片上傳、本機圖形／文字辨識及外部 AI 判讀，降低操作複雜度並維持完全離線。</li>
+      <li><strong>V6.2.0 社工口語紀錄：</strong>原「條列核對格式」改為連貫的社工口語紀錄模式，會整合案主、家庭成員、婚姻、親子、互動、同住範圍及服務資源。</li>
+      <li><strong>V6.2.0 圖面轉文字：</strong>保留目前可編輯家系圖逆向產生文字的功能，直接讀取圖面物件，不需上傳圖片。</li>
       <li><strong>V5.3.1 服務敘述：</strong>服務單位橢圓與人物以箭頭連接時，逆向文字會自動合併為「某單位提供某人服務」。</li>
-      <li><strong>V5.3.0 逆向文字：</strong>可將目前可編輯家系圖輸出為精簡、社工敘述或條列格式，並複製或下載文字檔。</li>
-      <li><strong>V5.3.0 掃描圖描圖：</strong>可離線匯入手繪／掃描圖片，調整透明度、縮放與位置後描圖；正式匯出預設排除底圖。</li>
+      <li><strong>V5.3.0 逆向文字：</strong>可將目前可編輯家系圖輸出為精簡或社工敘述格式，並複製或下載文字檔。</li>
       <li><strong>V5.2.1 關係符號：</strong>離婚以 X 顯示，分居以單一斜線顯示。</li>
       <li><strong>V5.2.0 圖形工具：</strong>以畫筆圈選取代矩形外框，放開後自動平滑閉環；新增可輸入文字的醫院／服務單位橢圓，以及端點可自由拉伸的箭頭。</li>
       <li><strong>V5.1.2 解析強化：</strong>子女與後代分支的多次婚配，可辨識各任配偶年齡，例如「第一次配偶58歲」；單次婚姻也支援「配偶52歲」。</li>
@@ -545,7 +552,7 @@
 
 
 
-<dialog id="smartScanDialog" class="dialog-wide">
+<dialog id="smartScanDialog" class="dialog-wide retired-feature" hidden inert>
   <div class="dialog-head">V6.1 智慧掃描辨識（Beta）</div>
   <div class="dialog-body">
     <div class="scan-privacy"><strong>本機模式：</strong>按「開始分析掃描圖」時，圖片只在目前瀏覽器處理，不會上傳。自動結果屬草稿，人物性別、親子關係、離婚／分居與手寫內容都必須確認後再套用。</div>
@@ -577,7 +584,7 @@
   </div>
 </dialog>
 
-<dialog id="aiAssistDialog" class="dialog-wide">
+<dialog id="aiAssistDialog" class="dialog-wide retired-feature" hidden inert>
   <div class="dialog-head">V6.1.2 一鍵 AI 協助判讀</div>
   <div class="dialog-body">
     <div class="ai-security-alert"><strong>⚠ 個資安全警訊：</strong>此功能會把預覽中的匿名化縮圖傳送至外部 AI 服務。請先遮蔽姓名、電話、地址、身分證字號、病歷／診斷、家暴、兒少及其他可識別資訊。即使姓名已遮蔽，特殊家庭結構、年齡與服務單位組合仍可能反向識別個案。不得以勾選同意取代機構授權、告知義務或資訊安全審查。</div>
@@ -627,13 +634,13 @@
   <div class="dialog-body">
     <div class="reverse-grid">
       <div class="reverse-options">
-        <div class="field"><label>輸出格式</label><select id="reverseFormat"><option value="compact">精簡紀錄格式</option><option value="narrative">社工敘述格式</option><option value="list">條列核對格式</option></select></div>
+        <div class="field"><label>輸出格式</label><select id="reverseFormat"><option value="compact">精簡紀錄格式</option><option value="narrative">社工敘述格式</option><option value="list">社工口語紀錄模式</option></select></div>
         <label class="check"><input type="checkbox" id="reverseIncludeNotes" checked /> 包含人物備註</label>
         <label class="check"><input type="checkbox" id="reverseIncludeRisk" checked /> 包含高風險標記</label>
         <label class="check"><input type="checkbox" id="reverseIncludeVisuals" checked /> 包含家庭範圍、服務單位、箭頭與圖面文字</label>
         <label class="check"><input type="checkbox" id="reverseAnonymize" /> 使用匿名代號</label>
         <button class="btn" id="refreshReverseTextBtn" type="button">重新產生文字</button>
-        <div class="reverse-summary" id="reverseSummary">將直接讀取目前圖面資料，不是圖片辨識；修改家系圖後可隨時重新產生。</div>
+        <div class="reverse-summary" id="reverseSummary">將直接讀取目前圖面資料，不是圖片辨識；修改家系圖後可隨時重新產生。社工口語紀錄模式會整合成可再修訂的連貫紀錄。</div>
       </div>
       <div class="reverse-output field"><label>文字結果</label><textarea id="reverseTextOutput" spellcheck="false"></textarea></div>
     </div>
@@ -650,8 +657,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script>window.GENOGRAM_AI_CONFIG=window.GENOGRAM_AI_CONFIG||{endpoint:"",serviceName:"騰元共用 AI 服務",allowCustomEndpoint:true};</script>
-<script src="ai-config.js"></script>
+<script>window.GENOGRAM_AI_CONFIG=window.GENOGRAM_AI_CONFIG||{endpoint:"https://genogram-ai-helper.hty0814ex.workers.dev/",serviceName:"騰元共用 AI 服務",allowCustomEndpoint:false};</script>
 <script>
 (() => {
   'use strict';
@@ -679,7 +685,7 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '6.1.1';
+  const APP_VERSION = '6.2.0';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
@@ -811,7 +817,7 @@
       regions:[...(data.regions||[]).map(normalizeRegion),...legacyRegions],
       ellipses:(data.ellipses||[]).map(normalizeEllipse),
       arrows:(data.arrows||[]).map(normalizeArrow),
-      referenceImage:normalizeReferenceImage(data.referenceImage),
+      referenceImage:null,
       frames:[],
       texts:(data.texts||[]).map(t=>({id:t.id||uid('t'),x:Number(t.x??700),y:Number(t.y??150),text:t.text||'文字說明',fontSize:Number(t.fontSize??22),bold:!!t.bold})),
       meta:{...base.meta,...(data.meta||{}),gridSize:GRID_SIZE}
@@ -1976,7 +1982,7 @@
 
   function updateStatus(){
     const n=state.nodes.length,r=state.relations.length,risk=state.nodes.filter(x=>x.risk).length,shapes=state.regions.length+state.ellipses.length+state.arrows.length,hasRef=!!state.referenceImage;
-    statusText.textContent=toolMode==='region'?'畫筆模式｜按住拖曳圈選同住／家庭範圍，放開後自動平滑閉環':`V${APP_VERSION}｜人物／事件 ${n}｜關係 ${r}｜圖樣 ${shapes}${risk?`｜風險標記 ${risk}`:''}｜網格 ${isGridEnabled()?'開':'關'}${state.meta?.anonymize?'｜匿名模式':''}${hasRef?'｜掃描底圖':''}｜點一下選取；再次按住拖曳`;
+    statusText.textContent=toolMode==='region'?'畫筆模式｜按住拖曳圈選同住／家庭範圍，放開後自動平滑閉環':`V${APP_VERSION}｜人物／事件 ${n}｜關係 ${r}｜圖樣 ${shapes}${risk?`｜風險標記 ${risk}`:''}｜網格 ${isGridEnabled()?'開':'關'}${state.meta?.anonymize?'｜匿名模式':''}｜點一下選取；再次按住拖曳`;
   }
 
   function populateRelationSelects(){
@@ -2302,19 +2308,52 @@
     return paragraphs.join('\n\n');
   }
   function generateListText(options={}){
-    const d=reverseData(options),lines=[`【${state.meta?.title||'家系圖'}】`,'','一、人物／事件'];d.people.forEach(n=>lines.push(`• 第${(d.gen.get(n.id)||0)+1}代｜${reverseName(n,d.anonymous)}｜${reverseNodeDetails(n,d)}`));
-    lines.push('','二、伴侶關係');if(!d.partnerRels.length)lines.push('• 無');d.partnerRels.forEach(r=>{const children=partnerChildren(r);lines.push(`• ${reverseName(getNode(r.from),d.anonymous)} ↔ ${reverseName(getNode(r.to),d.anonymous)}｜${partnerStatusText(r.status)}${r.label?`｜${r.label}`:''}${children.length?`｜子女：${children.map(c=>reverseName(c,d.anonymous)).join('、')}`:''}`);});
-    lines.push('','三、親子與其他關係');if(!d.parentRels.length&&!d.otherRels.length)lines.push('• 無其他未列關係');d.parentRels.forEach(r=>lines.push(`• ${parentSubtypeText(r.subtype)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));d.otherRels.forEach(r=>lines.push(`• ${relationTextName(r)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));
-    if(d.includeVisuals){
-      lines.push('','四、家庭範圍與服務資源');
-      if(!d.regions.length&&!d.services.length&&!d.serviceLinks.length&&!d.arrows.length&&!d.texts.length)lines.push('• 無');
-      d.regions.forEach(r=>lines.push(`• ${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));
-      d.serviceLinks.forEach(link=>lines.push(`• ${link.service}提供${link.recipients.join('、')}服務`));
-      d.services.forEach(s=>lines.push(`• 服務單位：${s}`));
-      d.arrows.forEach(a=>lines.push(`• 箭頭：${a}`));
-      d.texts.forEach(t=>lines.push(`• 圖面文字：${t}`));
+    const d=reverseData(options),paragraphs=[];
+    const probands=d.people.filter(n=>n.proband);
+    const probandText=probands.length
+      ? probands.map(n=>`${reverseName(n,d.anonymous)}（${reverseNodeDetails(n,d)}）`).join('、')
+      : '圖面未特別標示案主';
+    paragraphs.push(`案家目前家系圖共記錄${d.people.length}位家庭成員或事件，包含${d.partnerRels.length}組伴侶關係及${state.relations.filter(r=>r.type==='parent').length}筆親子關係；案主為${probandText}。`);
+
+    const groups=new Map();
+    d.people.forEach(n=>{const g=d.gen.get(n.id)||0;if(!groups.has(g))groups.set(g,[]);groups.get(g).push(n);});
+    const memberSentences=[...groups.keys()].sort((a,b)=>a-b).map(g=>{
+      const members=groups.get(g).map(n=>`${reverseName(n,d.anonymous)}（${reverseNodeDetails(n,d)}）`).join('、');
+      return `第${g+1}代成員有${members}`;
+    });
+    if(memberSentences.length)paragraphs.push(`家庭成員部分，${memberSentences.join('；')}。`);
+
+    if(d.partnerRels.length){
+      const items=d.partnerRels.map(r=>{
+        const a=reverseName(getNode(r.from),d.anonymous),b=reverseName(getNode(r.to),d.anonymous),children=partnerChildren(r);
+        let text=`${a}與${b}目前為${partnerStatusText(r.status)}關係`;
+        if(r.label)text+=`，另註記「${r.label}」`;
+        text+=children.length?`，育有${children.map(c=>reverseName(c,d.anonymous)).join('、')}`:'，圖面未登錄共同子女';
+        return text;
+      });
+      paragraphs.push(`婚姻及伴侶關係部分，${items.join('；')}。`);
     }
-    return lines.join('\n');
+
+    const relationItems=[];
+    d.parentRels.forEach(r=>relationItems.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}為${parentSubtypeText(r.subtype)}親子關係${r.label?`，註記「${r.label}」`:''}`));
+    d.otherRels.forEach(r=>relationItems.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}之間標示為${relationTextName(r)}${r.label?`，註記「${r.label}」`:''}`));
+    if(relationItems.length)paragraphs.push(`親子及家庭互動部分，${relationItems.join('；')}。`);
+
+    if(d.includeVisuals){
+      const living=[];
+      d.regions.forEach(r=>living.push(`${r.label}包含${r.members.length?r.members.join('、'):'尚未指定成員'}`));
+      if(living.length)paragraphs.push(`居住及家庭範圍部分，${living.join('；')}。`);
+
+      const serviceSentences=[];
+      d.serviceLinks.forEach(link=>serviceSentences.push(`${link.service}提供${link.recipients.join('、')}服務`));
+      if(d.services.length)serviceSentences.push(`另列有${d.services.join('、')}，但圖面未連結至特定成員`);
+      if(serviceSentences.length)paragraphs.push(`服務資源部分，${serviceSentences.join('；')}。`);
+
+      if(d.arrows.length)paragraphs.push(`圖面另以箭頭標示${d.arrows.join('；')}。`);
+      if(d.texts.length)paragraphs.push(`其他圖面補充為${d.texts.join('；')}。`);
+    }
+
+    return paragraphs.join('\n\n');
   }
   function reverseTextOptions(){return{includeNotes:$('#reverseIncludeNotes').checked,includeRisk:$('#reverseIncludeRisk').checked,includeVisuals:$('#reverseIncludeVisuals').checked,anonymous:$('#reverseAnonymize').checked};}
   function refreshReverseText(){const format=$('#reverseFormat').value,opts=reverseTextOptions();const result=format==='narrative'?generateNarrativeText(opts):format==='list'?generateListText(opts):generateCompactText(opts);$('#reverseTextOutput').value=result;$('#reverseSummary').textContent=`已轉換 ${state.nodes.length} 位人物／事件、${state.relations.length} 筆關係、${state.regions.length+state.ellipses.length+state.arrows.length} 個圖樣。文字可再手動修訂。`;return result;}
@@ -2637,7 +2676,7 @@
   const versionDialog=$('#versionDialog');$('#versionBtn').addEventListener('click',()=>versionDialog.showModal());$('#closeVersionBtn').addEventListener('click',()=>versionDialog.close());
 
   const reverseTextDialog=$('#reverseTextDialog');
-  $('#reverseTextBtn').addEventListener('click',openReverseText);$('#reverseTextSideBtn').addEventListener('click',openReverseText);$('#closeReverseTextBtn').addEventListener('click',()=>reverseTextDialog.close());$('#refreshReverseTextBtn').addEventListener('click',refreshReverseText);$('#reverseFormat').addEventListener('change',refreshReverseText);['#reverseIncludeNotes','#reverseIncludeRisk','#reverseIncludeVisuals','#reverseAnonymize'].forEach(sel=>$(sel).addEventListener('change',refreshReverseText));$('#copyReverseTextBtn').addEventListener('click',copyReverseText);$('#downloadReverseTextBtn').addEventListener('click',()=>download(`家系圖文字_V${APP_VERSION}.txt`,$('#reverseTextOutput').value,'text/plain;charset=utf-8'));$('#useReverseAsInputBtn').addEventListener('click',()=>{$('#quickInput').value=$('#reverseTextOutput').value;reverseTextDialog.close();showToast('已放入左側文字輸入框，原家系圖未變更');});
+  $('#reverseTextBtn').addEventListener('click',openReverseText);$('#diagramToTextBtn').addEventListener('click',openReverseText);$('#reverseTextSideBtn').addEventListener('click',openReverseText);$('#closeReverseTextBtn').addEventListener('click',()=>reverseTextDialog.close());$('#refreshReverseTextBtn').addEventListener('click',refreshReverseText);$('#reverseFormat').addEventListener('change',refreshReverseText);['#reverseIncludeNotes','#reverseIncludeRisk','#reverseIncludeVisuals','#reverseAnonymize'].forEach(sel=>$(sel).addEventListener('change',refreshReverseText));$('#copyReverseTextBtn').addEventListener('click',copyReverseText);$('#downloadReverseTextBtn').addEventListener('click',()=>download(`家系圖文字_V${APP_VERSION}.txt`,$('#reverseTextOutput').value,'text/plain;charset=utf-8'));$('#useReverseAsInputBtn').addEventListener('click',()=>{$('#quickInput').value=$('#reverseTextOutput').value;reverseTextDialog.close();showToast('已放入左側文字輸入框，原家系圖未變更');});
   $('#referenceImageInput').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)importReferenceImage(file);e.target.value='';});
   const smartScanDialog=$('#smartScanDialog');$('#smartScanBtn').addEventListener('click',openSmartScan);$('#closeSmartScanBtn').addEventListener('click',()=>smartScanDialog.close());$('#scanAnalyzeBtn').addEventListener('click',analyzeSmartScan);$('#scanReanalyzeBtn').addEventListener('click',analyzeSmartScan);$('#applySmartScanBtn').addEventListener('click',applySmartScan);$('#scanThreshold').addEventListener('input',e=>$('#scanThresholdValue').textContent=e.target.value);$('#scanMinSize').addEventListener('input',e=>$('#scanMinSizeValue').textContent=`${e.target.value} px`);$('#scanSelectAllBtn').addEventListener('click',()=>{const allOn=smartScanCandidates.every(c=>c.checked!==false)&&smartScanRelations.every(r=>r.checked!==false);smartScanCandidates.forEach(c=>c.checked=!allOn);smartScanRelations.forEach(r=>r.checked=!allOn);renderSmartScanResults();renderSmartScanPreview();});
   const aiAssistDialog=$('#aiAssistDialog');$('#openAiAssistBtn').addEventListener('click',openAiAssist);$('#closeAiAssistBtn').addEventListener('click',()=>aiAssistDialog.close());$('#aiAnalyzeBtn').addEventListener('click',runAiAssist);$('#aiTestServiceBtn').addEventListener('click',()=>checkAiService());$('#aiApplyEndpointBtn').addEventListener('click',()=>{const endpoint=normalizeAiEndpoint($('#aiEndpoint').value);if(!/^https:\/\//i.test(endpoint))return aiSetStatus('請輸入 https:// 開頭的 Worker 網址。','error');safeSessionSet('genogram-ai-endpoint',endpoint);syncAiServiceConfig();checkAiService();});$('#aiResetEndpointBtn').addEventListener('click',()=>{safeSessionRemove('genogram-ai-endpoint');syncAiServiceConfig();checkAiService();});$('#aiMaskOcr').addEventListener('change',()=>{aiLastUploadPreview=false;drawAiMaskPreview();});$('#aiClearMasksBtn').addEventListener('click',()=>{aiRedactions=[];aiLastUploadPreview=false;drawAiMaskPreview();aiSetStatus('已清除手動遮蔽；自動 OCR 遮蔽仍依勾選狀態顯示。');});$('#aiPreviewUploadBtn').addEventListener('click',()=>{aiLastUploadPreview=!aiLastUploadPreview;drawAiMaskPreview(aiLastUploadPreview);$('#aiPreviewUploadBtn').textContent=aiLastUploadPreview?'返回遮蔽編輯':'預覽實際上傳圖';});$('#aiMaskModeBtn').addEventListener('click',()=>{aiMaskMode=!aiMaskMode;$('#aiMaskModeBtn').textContent=`手動遮蔽：${aiMaskMode?'開':'關'}`;$('#aiMaskModeBtn').setAttribute('aria-pressed',String(aiMaskMode));aiLastUploadPreview=false;drawAiMaskPreview();});
