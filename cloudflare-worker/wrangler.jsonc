@@ -1,0 +1,9 @@
+{
+  "name": "genogram-ai-helper",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-28",
+  "ai": { "binding": "AI" },
+  "vars": {
+    "ALLOWED_ORIGIN": "*"
+  }
+}

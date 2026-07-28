@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V6.0.0</title>
+<title>家系圖快速製作器 V6.1.0</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -200,6 +200,29 @@
 .scan-privacy{border-left:4px solid #147d64;padding:9px 11px;background:#f2faf7;border-radius:8px;font-size:12px;line-height:1.6;color:#355b50}
 .scan-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed #cfd8df;border-radius:10px;background:#fafcfd}
 .scan-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px;font-size:13px}
+
+.ai-launch{border-color:#7c5ce0;background:#f5f1ff;color:#5034b5}.ai-launch:hover{background:#eee8ff;border-color:#6848cf}
+.ai-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#f3efff;color:#6040c7;border:1px solid #d7cbff;font-size:11px;font-weight:800}
+.ai-security-alert{border-left:5px solid #b42318;padding:11px 13px;background:#fff1f0;border-radius:9px;font-size:12px;line-height:1.65;color:#74231d}
+.ai-security-alert strong{color:#a11812}
+.ai-info{border-left:4px solid #6848cf;padding:9px 11px;background:#f7f4ff;border-radius:8px;font-size:12px;line-height:1.6;color:#4d3a82}
+.ai-assist-grid{display:grid;grid-template-columns:315px minmax(0,1fr);gap:14px;align-items:start}
+.ai-settings{display:grid;gap:10px;padding:12px;border:1px solid #ded8ef;border-radius:12px;background:#fbfaff}
+.ai-mask-wrap{border:1px solid var(--line);border-radius:12px;background:#eef2f4;overflow:auto;min-height:330px;display:grid;place-items:center;padding:10px}
+#aiMaskPreview{display:block;max-width:100%;height:auto;background:#fff;touch-action:none;cursor:crosshair}
+.ai-mask-tools{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.ai-status{padding:9px 10px;border:1px solid #ded8ef;border-radius:9px;background:#faf8ff;font-size:12px;line-height:1.6;color:#4c416a;white-space:pre-wrap}
+.ai-status.error{border-color:#efc2bd;background:#fff3f1;color:#8b2720}
+.ai-status.success{border-color:#b8decf;background:#f1faf6;color:#22644f}
+.ai-consent{padding:9px;border:1px solid #e2b5b0;border-radius:9px;background:#fff6f5}
+.ai-consent .check{align-items:flex-start}
+.ai-field-help{font-size:11px;line-height:1.5;color:var(--muted)}
+.privacy-critical{margin-top:9px;border:1px solid #e3a8a2;background:#fff0ef;color:#8f211a;border-radius:9px;padding:10px;font-size:12px;line-height:1.6}
+.legal-notice{border:1px solid #d4dae1;background:#f7f8fa;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.65;color:#3a4653}
+.legal-notice strong{color:#18202a}
+.legal-footer{margin:0 14px 14px;padding:10px 14px;border:1px solid #d6dce3;border-radius:10px;background:#f7f8fa;color:#46515d;font-size:12px;line-height:1.55;text-align:center}
+@media (max-width:850px){.ai-assist-grid{grid-template-columns:1fr}}
+
 @media (max-width:850px){.smart-scan-grid{grid-template-columns:1fr}.scan-result-card{grid-template-columns:auto 96px minmax(100px,1fr) 70px}.scan-result-card .confidence{grid-column:2/-1;justify-self:start}}
 
 @media (max-width:720px){.reverse-grid{grid-template-columns:1fr}.reverse-output textarea{min-height:330px}}
@@ -213,8 +236,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V6.0.0</span></h1>
-        <p>台灣社工家系圖排列｜智慧掃描辨識｜辨識結果人工確認｜離線可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V6.1.0</span></h1>
+        <p>台灣社工家系圖排列｜本機辨識＋選配 AI 協助｜人工確認｜離線核心可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -262,7 +285,7 @@
       </section>
 
       <section class="section">
-        <h3>掃描圖描圖工作區 <span class="scan-badge">離線</span></h3>
+        <h3>掃描圖描圖工作區 <span class="scan-badge">離線</span> <span class="ai-badge">AI 選配</span></h3>
         <div class="reference-file-row">
           <label class="btn primary small" for="referenceImageInput">匯入手繪／掃描圖片</label>
           <input class="file-input" id="referenceImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
@@ -288,7 +311,7 @@
           </div>
           <label class="check"><input type="checkbox" id="referenceIncludeExport" /> 匯出 SVG／PNG／PDF 時包含掃描底圖</label>
         </div>
-        <p class="hint tool-hint"><strong>V6 智慧辨識：</strong>圖片只在目前瀏覽器處理，可自動找出常見人物符號、服務單位橢圓與部分關係線，再由使用者逐項確認。手寫姓名辨識取決於瀏覽器是否支援本機文字偵測；正式匯出預設不包含底圖。</p>
+        <p class="hint tool-hint"><strong>V6.1 智慧辨識：</strong>預設先在目前瀏覽器進行本機圖形與文字辨識；另可主動開啟「AI 協助判讀」，將已遮蔽的縮圖傳至自行設定的 Cloudflare Worker。AI 結果只會加入確認清單，不會直接改動正式家系圖。</p>
       </section>
 
       <section class="section">
@@ -373,9 +396,11 @@
           <div class="hint">此功能不會刪除原始姓名，只改變畫布顯示與 SVG／PNG／PDF 輸出。JSON 專案仍保留原始資料，請妥善保管。</div>
         </div>
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
+        <div class="privacy-critical"><strong>雲端 AI 警訊：</strong>姓名、電話、地址、身分證字號、病歷、診斷、家暴、兒少與其他可識別個案資訊，不得在未遮蔽、未取得適法依據或未符合機構規範時上傳至外部 AI。即使已匿名，仍須確認人物關係組合不會反向識別特定家庭。</div>
+        <div class="legal-notice" style="margin-top:9px"><strong>授權與著作權：</strong>本軟體由騰元提供免費使用。未經授權，任何人不得重製、修改後販售、出租、收費提供、再授權或以其他方式用於營利；軟體著作權及相關權利均予保留。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.3.1</strong><span>2026-07-28</span><p>優化圖面轉文字：服務單位橢圓若以箭頭連到人物，會合併輸出為「某單位提供某人服務」，不再重複列出單位與圖面箭頭。</p></div>
+        <div class="version-card"><strong>版本 6.1.0</strong><span>2026-07-28</span><p>新增本機文字辨識備援、手動畫面遮蔽、選配 Cloudflare Worker AI 判讀、上傳前強制個資警示與著作權／非營利使用警語。</p></div>
       </section>
     </aside>
 
@@ -475,10 +500,13 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V6.0.0</div>
+  <div class="dialog-head">家系圖快速製作器 V6.1.0</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V6.1.0 AI 協助判讀：</strong>可將已遮蔽、縮小的掃描圖送往使用者自行設定的 Cloudflare Worker；端點不內建金鑰，AI 回傳結果仍須逐項人工確認。</li>
+      <li><strong>V6.1.0 匿名化上傳：</strong>新增 OCR 文字區自動遮蔽、手動畫面遮蔽框、上傳縮圖預覽、強制個資風險同意與工作階段端點設定。</li>
+      <li><strong>V6.1.0 授權警語：</strong>標示由騰元提供免費使用，禁止未經授權重製、修改後營利、轉售、收費提供或再授權。</li>
       <li><strong>V6.0.0 智慧掃描辨識：</strong>新增離線影像前處理、常見符號候選偵測、伴侶／親子／服務箭頭關係建議、信心分數與人工確認清單。辨識後可選擇覆蓋或加入目前圖面。</li>
       <li><strong>V6.0.0 隱私設計：</strong>智慧辨識預設完全在瀏覽器執行，不會自動上傳圖片；瀏覽器支援 TextDetector 時可嘗試本機文字偵測，不支援時仍可手動補正姓名與年齡。</li>
       <li><strong>V5.3.1 服務敘述：</strong>服務單位橢圓與人物以箭頭連接時，逆向文字會自動合併為「某單位提供某人服務」。</li>
@@ -498,6 +526,7 @@
       <li>收養／寄養仍保留虛線分支與標籤。</li>
       <li>保留 V4 的避障關係線、匿名化、動態匯出、行動裝置微調與離線功能。</li>
     </ul>
+    <div class="legal-notice"><strong>著作權聲明：</strong>本軟體由騰元提供免費使用。未經授權，不得重製、修改後營利、轉售、出租、收費提供、再授權或以其他方式作商業利用。</div>
   </div>
   <div class="dialog-foot"><button class="btn primary" id="closeVersionBtn">知道了</button></div>
 </dialog>
@@ -505,15 +534,16 @@
 
 
 <dialog id="smartScanDialog" class="dialog-wide">
-  <div class="dialog-head">V6.0 智慧掃描辨識（Beta）</div>
+  <div class="dialog-head">V6.1 智慧掃描辨識（Beta）</div>
   <div class="dialog-body">
-    <div class="scan-privacy"><strong>個資與準確度提醒：</strong>本功能預設只在目前瀏覽器分析圖片，不會自動上傳。自動結果屬草稿，人物性別、親子關係、離婚／分居與手寫內容都必須由使用者確認後再套用。</div>
+    <div class="scan-privacy"><strong>本機模式：</strong>按「開始分析掃描圖」時，圖片只在目前瀏覽器處理，不會上傳。自動結果屬草稿，人物性別、親子關係、離婚／分居與手寫內容都必須確認後再套用。</div>
     <div class="smart-scan-grid">
       <div class="smart-scan-settings">
         <div class="field"><label>黑白判定門檻</label><input type="range" id="scanThreshold" min="110" max="235" step="5" value="185" /><div class="setting-line"><span class="hint">較淡的鉛筆線請調高</span><strong id="scanThresholdValue">185</strong></div></div>
         <div class="field"><label>最小符號尺寸</label><input type="range" id="scanMinSize" min="14" max="60" step="2" value="24" /><div class="setting-line"><span class="hint">排除文字與小雜點</span><strong id="scanMinSizeValue">24 px</strong></div></div>
         <label class="check"><input type="checkbox" id="scanDetectRelations" checked /> 建議伴侶、親子與服務連線</label>
         <label class="check"><input type="checkbox" id="scanUseOcr" checked /> 嘗試瀏覽器本機文字偵測</label>
+        <label class="check"><input type="checkbox" id="scanUseNetworkOcr" /> 若瀏覽器不支援，載入 Tesseract.js 本機 OCR（需網路下載引擎，圖片不送出）</label>
         <label class="check"><input type="checkbox" id="scanReplaceExisting" checked /> 套用時取代目前人物與關係</label>
         <label class="check"><input type="checkbox" id="scanAutoLayout" /> 套用後依社工原則重新排列</label>
         <button class="btn primary" id="scanAnalyzeBtn" type="button">開始分析掃描圖</button>
@@ -529,8 +559,40 @@
   </div>
   <div class="dialog-foot row wrap">
     <button class="btn" id="scanReanalyzeBtn" type="button">重新分析</button>
+    <button class="btn ai-launch" id="openAiAssistBtn" type="button">AI 協助判讀</button>
     <button class="btn" id="closeSmartScanBtn" type="button">取消</button>
     <button class="btn primary" id="applySmartScanBtn" type="button" disabled>套用已勾選結果</button>
+  </div>
+</dialog>
+
+<dialog id="aiAssistDialog" class="dialog-wide">
+  <div class="dialog-head">V6.1 選配 AI 協助判讀</div>
+  <div class="dialog-body">
+    <div class="ai-security-alert"><strong>⚠ 個資安全警訊：</strong>此功能會把圖片傳送到你設定的外部 Cloudflare Worker。請先遮蔽姓名、電話、地址、身分證字號、病歷／診斷、家暴、兒少及其他可識別資訊。不得以「已勾選同意」取代機構授權、個資告知義務或資訊安全審查。AI 判讀可能錯誤，只能作為草稿。</div>
+    <div class="ai-assist-grid" style="margin-top:12px">
+      <div class="ai-settings">
+        <div class="field"><label>Cloudflare Worker 端點</label><input id="aiEndpoint" type="url" placeholder="https://你的-worker.workers.dev" autocomplete="off" /><div class="ai-field-help">網址僅保留於目前分頁的工作階段，不寫入專案 JSON，也不內建任何 API 金鑰。</div></div>
+        <div class="field"><label>AI 結果整合方式</label><select id="aiMergeMode"><option value="merge">與本機辨識結果合併</option><option value="replace">以 AI 結果取代目前候選</option></select></div>
+        <div class="field"><label>上傳圖片最大邊長</label><select id="aiImageSize"><option value="720">720 px（個資風險與流量較低）</option><option value="960" selected>960 px（建議）</option><option value="1280">1280 px（細節較多）</option></select></div>
+        <label class="check"><input type="checkbox" id="aiMaskOcr" checked /> 自動遮蔽本機 OCR 找到的文字區域</label>
+        <label class="check"><input type="checkbox" id="aiSendLocalDraft" checked /> 同時附上本機候選座標，協助 AI 校正</label>
+        <div class="ai-mask-tools">
+          <button class="btn small" id="aiMaskModeBtn" type="button" aria-pressed="false">手動遮蔽：關</button>
+          <button class="btn small" id="aiClearMasksBtn" type="button">清除手動遮蔽</button>
+          <button class="btn small" id="aiPreviewUploadBtn" type="button">預覽實際上傳圖</button>
+        </div>
+        <div class="ai-consent"><label class="check"><input type="checkbox" id="aiConsent" /> 我確認圖片已完成必要遮蔽，並已依所屬機構規範取得使用外部 AI 的適法依據與授權。</label></div>
+        <button class="btn primary" id="aiAnalyzeBtn" type="button">傳送匿名化縮圖並請 AI 判讀</button>
+        <div class="ai-status" id="aiStatus">尚未傳送。請先設定 Worker 端點、完成遮蔽並勾選個資確認。</div>
+      </div>
+      <div>
+        <div class="ai-mask-wrap"><canvas id="aiMaskPreview" width="900" height="560" aria-label="AI 上傳遮蔽預覽"></canvas></div>
+        <div class="ai-info" style="margin-top:9px"><strong>手動遮蔽：</strong>開啟後，在預覽圖上按住拖曳即可加入黑色遮蔽框。遮蔽只作用於送往 AI 的縮圖，不會修改原始掃描圖或專案檔。</div>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-foot row wrap">
+    <button class="btn" id="closeAiAssistBtn" type="button">返回本機辨識</button>
   </div>
 </dialog>
 
@@ -558,6 +620,8 @@
   </div>
 </dialog>
 
+<footer class="legal-footer"><strong>軟體著作權與使用限制：</strong>本軟體由騰元提供免費使用。未經授權，任何人不得重製、修改後販售、出租、收費提供、再授權或以其他方式用於營利。使用者應自行遵守個資、醫療、社福紀錄及所屬機構資訊安全規範。</footer>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -580,7 +644,7 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '6.0.0';
+  const APP_VERSION = '6.1.0';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
@@ -616,6 +680,10 @@
   let smartScanCandidates = [];
   let smartScanRelations = [];
   let smartScanContext = null;
+  let aiRedactions = [];
+  let aiMaskMode = false;
+  let aiMaskDraft = null;
+  let aiLastUploadPreview = false;
 
   const uid = (prefix) => prefix + '_' + Math.random().toString(36).slice(2, 9);
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -2321,9 +2389,23 @@
     for(const service of services){const nearby=nodes.map(n=>({n,d:Math.hypot(n.cx-service.cx,n.cy-service.cy)})).sort((a,b)=>a.d-b.d).slice(0,3);for(const {n,d} of nearby){if(d>Math.max(w,h)*.65)continue;const density=scanStripDensity(ink,w,h,service.cx,service.cy,n.cx,n.cy,3);if(density>.2)rels.push({id:uid('sr'),kind:'serviceArrow',type:'serviceArrow',from:service.id,to:n.id,confidence:clamp(.42+density*.65,.38,.9),checked:density>.3});}}
     const unique=new Map();for(const r of rels){const key=`${r.type}:${r.from}:${r.to}`;if(!unique.has(key)||unique.get(key).confidence<r.confidence)unique.set(key,r);}return[...unique.values()];
   }
-  async function detectScanText(canvas,candidates,useOcr){
-    if(!useOcr||typeof window.TextDetector!=='function')return{items:[],supported:false};
-    try{const detector=new TextDetector(),items=await detector.detect(canvas);for(const item of items){const b=item.boundingBox||{},cx=(b.x||0)+(b.width||0)/2,cy=(b.y||0)+(b.height||0)/2;const target=candidates.filter(c=>cx>c.minX-c.w*.5&&cx<c.maxX+c.w*.5&&cy>c.minY-c.h*.8&&cy<c.maxY+c.h*1.8).sort((a,b)=>Math.hypot(a.cx-cx,a.cy-cy)-Math.hypot(b.cx-cx,b.cy-cy))[0];if(target){const raw=String(item.rawValue||'').trim(),age=raw.match(/(\d{1,3})\s*歲?/);if(age&&!target.age)target.age=age[1];const name=raw.replace(/\d{1,3}\s*歲?/g,'').replace(/[()（）]/g,'').trim();if(name&&name.length<30&&!target.name)target.name=name;}}return{items,supported:true};}catch(e){return{items:[],supported:false};}
+  function applyDetectedText(items,candidates){
+    for(const item of items){const b=item.boundingBox||{},cx=(b.x||0)+(b.width||0)/2,cy=(b.y||0)+(b.height||0)/2;const target=candidates.filter(c=>cx>c.minX-c.w*.5&&cx<c.maxX+c.w*.5&&cy>c.minY-c.h*.8&&cy<c.maxY+c.h*1.8).sort((a,b)=>Math.hypot(a.cx-cx,a.cy-cy)-Math.hypot(b.cx-cx,b.cy-cy))[0];if(target){const raw=String(item.rawValue||item.text||'').trim(),age=raw.match(/(\d{1,3})\s*歲?/);if(age&&!target.age)target.age=age[1];const name=raw.replace(/\d{1,3}\s*歲?/g,'').replace(/[()（）]/g,'').trim();if(name&&name.length<30&&(!target.name||/^男性|^女性|^性別未明/.test(target.name)))target.name=name;}}
+  }
+  async function loadTesseractJs(){
+    if(window.Tesseract)return window.Tesseract;
+    await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.crossOrigin='anonymous';s.onload=resolve;s.onerror=()=>reject(new Error('Tesseract.js 載入失敗'));document.head.appendChild(s);});
+    return window.Tesseract;
+  }
+  async function detectScanText(canvas,candidates,useOcr,useNetworkFallback=false){
+    if(!useOcr)return{items:[],supported:false,engine:'disabled'};
+    if(typeof window.TextDetector==='function'){
+      try{const detector=new TextDetector(),items=await detector.detect(canvas);applyDetectedText(items,candidates);return{items,supported:true,engine:'TextDetector'};}catch(e){console.warn('TextDetector failed',e);}
+    }
+    if(useNetworkFallback&&navigator.onLine){
+      try{const Tesseract=await loadTesseractJs(),result=await Tesseract.recognize(canvas,'chi_tra+eng',{logger:m=>{if(m.status==='recognizing text'){$('#scanSummary').textContent=`本機 OCR 辨識中… ${Math.round((m.progress||0)*100)}%`;}}});const words=result?.data?.words||[],items=words.filter(w=>String(w.text||'').trim()).map(w=>({rawValue:String(w.text||'').trim(),boundingBox:{x:w.bbox?.x0||0,y:w.bbox?.y0||0,width:Math.max(1,(w.bbox?.x1||0)-(w.bbox?.x0||0)),height:Math.max(1,(w.bbox?.y1||0)-(w.bbox?.y0||0))}}));applyDetectedText(items,candidates);return{items,supported:true,engine:'Tesseract.js'};}catch(e){console.warn('Tesseract OCR failed',e);return{items:[],supported:false,engine:'failed'};}
+    }
+    return{items:[],supported:false,engine:'unsupported'};
   }
   function scanCandidateDefaultName(type,index){return type==='service'?'服務醫院／單位':type==='pregnancy'?'懷孕':type==='loss'?'流產／死產':`${scanTypeName(type)}${index+1}`;}
   function renderSmartScanPreview(){
@@ -2354,9 +2436,9 @@
       const filled=connectedInkComponents(ink,c.width,c.height,Math.max(14,minSize)).filter(comp=>comp.density>.38&&comp.w<minSize*4&&comp.h<minSize*4);
       for(const comp of filled){const cls=classifyScanComponent(comp,c.width);if(!cls||cls.type!=='loss'||cls.confidence<.5)continue;if(candidates.some(x=>Math.hypot(x.cx-(comp.minX+comp.maxX)/2,x.cy-(comp.minY+comp.maxY)/2)<Math.max(comp.w,comp.h)))continue;const id=uid('sc'),index=candidates.length;candidates.push({minX:comp.minX,minY:comp.minY,maxX:comp.maxX,maxY:comp.maxY,w:comp.w,h:comp.h,type:'loss',confidence:cls.confidence,id,kind:'candidate',cx:(comp.minX+comp.maxX)/2,cy:(comp.minY+comp.maxY)/2,name:scanCandidateDefaultName('loss',index),age:'',checked:true});}
       candidates.sort((a,b)=>a.cy-b.cy||a.cx-b.cx);setScanProgress(58);
-      const ocr=await detectScanText(c,candidates,$('#scanUseOcr').checked);setScanProgress(72);
-      const relations=proposeScanRelations(candidates,ink,c.width,c.height,$('#scanDetectRelations').checked);smartScanCandidates=candidates;smartScanRelations=relations;smartScanContext={canvas:c,ink,width:c.width,height:c.height,threshold,ocrSupported:ocr.supported};
-      renderSmartScanPreview();renderSmartScanResults();const low=candidates.filter(x=>x.confidence<.55).length,ocrText=ocr.supported?`瀏覽器文字偵測已執行，共找到 ${ocr.items.length} 段文字。`:'此瀏覽器不支援本機 TextDetector，姓名與年齡請在清單手動補正。';$('#scanSummary').textContent=`找到 ${candidates.length} 個人物／圖樣候選、${relations.length} 筆關係建議；其中 ${low} 個信心較低。${ocrText}`;setScanProgress(100);
+      const ocr=await detectScanText(c,candidates,$('#scanUseOcr').checked,$('#scanUseNetworkOcr').checked);setScanProgress(72);
+      const relations=proposeScanRelations(candidates,ink,c.width,c.height,$('#scanDetectRelations').checked);smartScanCandidates=candidates;smartScanRelations=relations;smartScanContext={canvas:c,ink,width:c.width,height:c.height,threshold,ocrSupported:ocr.supported,ocrItems:ocr.items||[],ocrEngine:ocr.engine||''};
+      renderSmartScanPreview();renderSmartScanResults();const low=candidates.filter(x=>x.confidence<.55).length,ocrText=ocr.supported?`${ocr.engine||'本機 OCR'} 已執行，共找到 ${ocr.items.length} 段文字。`:'目前未取得本機 OCR 結果，姓名與年齡請在清單手動補正，或勾選 Tesseract.js 備援。';$('#scanSummary').textContent=`找到 ${candidates.length} 個人物／圖樣候選、${relations.length} 筆關係建議；其中 ${low} 個信心較低。${ocrText}`;setScanProgress(100);
     }catch(e){console.error(e);$('#scanSummary').textContent='分析失敗：圖片格式或瀏覽器記憶體不足。請改用較小的 JPG／PNG。';showToast('智慧掃描分析失敗');setScanProgress(0);}finally{btn.disabled=false;$('#scanReanalyzeBtn').disabled=false;}
   }
   function applySmartScan(){
@@ -2367,7 +2449,47 @@
     for(const r of smartScanRelations.filter(x=>x.checked!==false&&x.type!=='ignore')){const a=map.get(r.from),b=map.get(r.to);if(!a||!b)continue;if(r.type==='serviceArrow'&&a.kind==='service'&&b.kind==='node'){state.arrows.push(normalizeArrow({id:uid('a'),x1:a.obj.x,y1:a.obj.y,x2:b.obj.x,y2:b.obj.y,color:'#147d64'}));}else if(r.type==='serviceArrow'&&b.kind==='service'&&a.kind==='node'){state.arrows.push(normalizeArrow({id:uid('a'),x1:b.obj.x,y1:b.obj.y,x2:a.obj.x,y2:a.obj.y,color:'#147d64'}));}else if(a.kind==='node'&&b.kind==='node'){state.relations.push(normalizeRelation({id:uid('r'),from:a.obj.id,to:b.obj.id,type:r.type,status:r.type==='partner'?(r.status||'married'):'married',subtype:r.type==='parent'?'biological':''}));}}
     inferParentUnionIds();state.selected=null;if($('#scanAutoLayout').checked)autoLayout(false);else{render();persist();}$('#smartScanDialog').close();showToast(`已套用 ${selected.length} 個辨識物件，請逐項確認屬性與關係`);
   }
-  function openSmartScan(){if(!state.referenceImage||!referenceImageHref())return showToast('請先匯入手繪／掃描圖片');smartScanCandidates=[];smartScanRelations=[];smartScanContext=null;$('#smartScanResults').innerHTML='<div class="scan-empty">按「開始分析掃描圖」產生候選。</div>';$('#scanSummary').textContent='辨識結果會先進入人工確認清單，不會直接改動目前家系圖。';$('#applySmartScanBtn').disabled=true;setScanProgress(0);const c=$('#smartScanPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);$('#smartScanDialog').showModal();}
+  function openSmartScan(){if(!state.referenceImage||!referenceImageHref())return showToast('請先匯入手繪／掃描圖片');smartScanCandidates=[];smartScanRelations=[];smartScanContext=null;aiRedactions=[];$('#smartScanResults').innerHTML='<div class="scan-empty">按「開始分析掃描圖」產生候選。</div>';$('#scanSummary').textContent='辨識結果會先進入人工確認清單，不會直接改動目前家系圖。';$('#applySmartScanBtn').disabled=true;setScanProgress(0);const c=$('#smartScanPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);$('#smartScanDialog').showModal();}
+
+  function safeSessionGet(key){try{return sessionStorage.getItem(key)||'';}catch{return'';}}
+  function safeSessionSet(key,value){try{sessionStorage.setItem(key,value);}catch{}}
+  function aiSetStatus(message,type=''){
+    const el=$('#aiStatus');if(!el)return;el.textContent=message;el.className=`ai-status${type?` ${type}`:''}`;
+  }
+  function getCanvasPoint(evt,canvas){const r=canvas.getBoundingClientRect();return{x:(evt.clientX-r.left)*canvas.width/r.width,y:(evt.clientY-r.top)*canvas.height/r.height};}
+  function aiOcrRedactions(){
+    if(!$('#aiMaskOcr')?.checked)return[];return(smartScanContext?.ocrItems||[]).map(item=>{const b=item.boundingBox||{};return{x:Math.max(0,(b.x||0)-5),y:Math.max(0,(b.y||0)-4),w:Math.max(10,(b.width||0)+10),h:Math.max(10,(b.height||0)+8),auto:true};});
+  }
+  function allAiRedactions(){return[...aiOcrRedactions(),...aiRedactions];}
+  function drawRedactions(ctx,boxes,label=true){ctx.save();for(const box of boxes){ctx.fillStyle='rgba(15,18,22,.94)';ctx.fillRect(box.x,box.y,box.w,box.h);ctx.strokeStyle=box.auto?'#f7b955':'#ff6b61';ctx.lineWidth=2;ctx.strokeRect(box.x,box.y,box.w,box.h);if(label){ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText(box.auto?'自動遮蔽':'手動遮蔽',box.x+4,box.y+14);}}ctx.restore();}
+  function drawAiMaskPreview(uploadOnly=aiLastUploadPreview){
+    const canvas=$('#aiMaskPreview'),source=smartScanContext?.canvas;if(!canvas||!source)return;canvas.width=source.width;canvas.height=source.height;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0);drawRedactions(ctx,allAiRedactions(),!uploadOnly);if(aiMaskDraft){ctx.save();ctx.strokeStyle='#ff3b30';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.strokeRect(aiMaskDraft.x,aiMaskDraft.y,aiMaskDraft.w,aiMaskDraft.h);ctx.restore();}if(!uploadOnly){ctx.save();ctx.fillStyle='rgba(80,52,181,.9)';ctx.font=`${Math.max(13,source.width/70)}px sans-serif`;ctx.fillText('AI 上傳遮蔽預覽｜紅框可手動新增',12,Math.max(20,source.width/45));ctx.restore();}}
+  function createAiUploadCanvas(){
+    const source=smartScanContext?.canvas;if(!source)throw new Error('請先執行本機掃描分析');const masked=document.createElement('canvas');masked.width=source.width;masked.height=source.height;const mctx=masked.getContext('2d');mctx.drawImage(source,0,0);drawRedactions(mctx,allAiRedactions(),false);const maxSide=Number($('#aiImageSize').value)||960,scale=Math.min(1,maxSide/Math.max(masked.width,masked.height)),out=document.createElement('canvas');out.width=Math.max(1,Math.round(masked.width*scale));out.height=Math.max(1,Math.round(masked.height*scale));const octx=out.getContext('2d');octx.fillStyle='#fff';octx.fillRect(0,0,out.width,out.height);octx.drawImage(masked,0,0,out.width,out.height);return out;
+  }
+  function aiType(type){const t=String(type||'').toLowerCase();return({man:'male',boy:'male',男性:'male',male:'male',woman:'female',girl:'female',女性:'female',female:'female',unknown:'unknown',diamond:'unknown',pregnant:'pregnancy',pregnancy:'pregnancy',loss:'loss',miscarriage:'loss',service:'service',hospital:'service',agency:'service'}[t]||'unknown');}
+  function aiRelationType(type){const t=String(type||'').toLowerCase();return({spouse:'partner',marriage:'partner',partner:'partner',parent:'parent',child:'parent',service:'serviceArrow',servicearrow:'serviceArrow',arrow:'serviceArrow'}[t]||'ignore');}
+  function parseAiPayload(data){
+    let value=data?.result??data?.response??data?.output??data?.data??data;if(value&&typeof value==='object'&&(value.people||value.nodes||value.relationships||value.relations))return value;if(value&&typeof value==='object')value=value.response??value.result??JSON.stringify(value);if(typeof value!=='string')throw new Error('AI 回傳格式不是可解析文字');let s=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');const first=s.indexOf('{'),last=s.lastIndexOf('}');if(first>=0&&last>first)s=s.slice(first,last+1);return JSON.parse(s);
+  }
+  function aiBBoxToCandidate(item,index,width,height){
+    const b=item.bbox||item.box||{},normalized=[b.x,b.y,b.w,b.h].every(v=>Number(v)>=0&&Number(v)<=1.05),x=Number(b.x??item.x??0),y=Number(b.y??item.y??0),w=Number(b.w??b.width??item.width??.08),h=Number(b.h??b.height??item.height??.08);let minX=normalized?x*width:x,minY=normalized?y*height:y,bw=normalized?w*width:w,bh=normalized?h*height:h;if(item.cx!=null){const cx=Number(item.cx)*(Number(item.cx)<=1.05?width:1),cy=Number(item.cy)*(Number(item.cy)<=1.05?height:1);minX=cx-bw/2;minY=cy-bh/2;}bw=clamp(bw||50,18,width*.55);bh=clamp(bh||50,18,height*.55);minX=clamp(minX,0,width-bw);minY=clamp(minY,0,height-bh);const type=aiType(item.type||item.sex||item.kind),id=uid('ai');return{id,aiId:String(item.id??index),kind:'candidate',type,name:String(item.name||item.label||scanCandidateDefaultName(type,index)),age:item.age==null?'':String(item.age),minX,minY,maxX:minX+bw,maxY:minY+bh,w:bw,h:bh,cx:minX+bw/2,cy:minY+bh/2,confidence:clamp(Number(item.confidence)||.65,.2,.99),checked:true};
+  }
+  function mergeAiScanResult(payload){
+    const people=Array.isArray(payload.people)?payload.people:Array.isArray(payload.nodes)?payload.nodes:[],rels=Array.isArray(payload.relationships)?payload.relationships:Array.isArray(payload.relations)?payload.relations:[];if(!people.length)throw new Error('AI 沒有回傳人物或服務單位候選');const width=smartScanContext.canvas.width,height=smartScanContext.canvas.height,aiCandidates=people.map((p,i)=>aiBBoxToCandidate(p,i,width,height)),mode=$('#aiMergeMode').value,map=new Map();
+    if(mode==='replace'){smartScanCandidates=aiCandidates;}else{for(const c of aiCandidates){const near=smartScanCandidates.filter(x=>x.type===c.type).sort((a,b)=>Math.hypot(a.cx-c.cx,a.cy-c.cy)-Math.hypot(b.cx-c.cx,b.cy-c.cy))[0];if(near&&Math.hypot(near.cx-c.cx,near.cy-c.cy)<Math.max(c.w,c.h,near.w,near.h)*1.4){if(c.name&&!/^男性|^女性|^性別未明|^服務醫院/.test(c.name))near.name=c.name;if(c.age)near.age=c.age;near.confidence=Math.max(near.confidence,c.confidence);map.set(c.aiId,near.id);}else{smartScanCandidates.push(c);map.set(c.aiId,c.id);}}}
+    if(mode==='replace')aiCandidates.forEach(c=>map.set(c.aiId,c.id));
+    const byIndex=aiCandidates.map(c=>map.get(c.aiId)||c.id),newRelations=[];for(const r of rels){const fromKey=String(r.from??r.source??''),toKey=String(r.to??r.target??''),from=map.get(fromKey)||byIndex[Number(fromKey)]||'',to=map.get(toKey)||byIndex[Number(toKey)]||'',type=aiRelationType(r.type||r.kind);if(!from||!to||type==='ignore'||from===to)continue;newRelations.push({id:uid('air'),kind:type==='serviceArrow'?'serviceArrow':'relation',type,status:type==='partner'?(String(r.status||'married').toLowerCase()):'',from,to,confidence:clamp(Number(r.confidence)||.62,.2,.99),checked:true});}
+    if(mode==='replace')smartScanRelations=newRelations;else{for(const r of newRelations){if(!smartScanRelations.some(x=>x.type===r.type&&x.from===r.from&&x.to===r.to))smartScanRelations.push(r);}
+    }
+    renderSmartScanPreview();renderSmartScanResults();const warnings=Array.isArray(payload.warnings)?payload.warnings:[];$('#scanSummary').textContent=`AI 已加入 ${aiCandidates.length} 個候選與 ${newRelations.length} 筆關係建議。${warnings.length?` 提醒：${warnings.join('；')}`:''} 請逐項人工確認。`;$('#applySmartScanBtn').disabled=false;
+  }
+  async function runAiAssist(){
+    const endpoint=$('#aiEndpoint').value.trim();if(!/^https:\/\//i.test(endpoint))return aiSetStatus('請輸入 https:// 開頭的 Cloudflare Worker 端點。','error');if(!$('#aiConsent').checked)return aiSetStatus('尚未勾選個資安全確認，系統不會傳送圖片。','error');const boxes=allAiRedactions();if(!boxes.length&&!confirm('目前沒有任何自動或手動遮蔽框。確定圖片完全不含可識別個資，仍要傳送嗎？'))return;const btn=$('#aiAnalyzeBtn');btn.disabled=true;aiSetStatus('正在建立匿名化縮圖並傳送至外部 AI…');try{safeSessionSet('genogram-ai-endpoint',endpoint);const imageCanvas=createAiUploadCanvas(),dataUrl=imageCanvas.toDataURL('image/jpeg',.86),payload={version:APP_VERSION,task:'genogram_scan',image:dataUrl,imageWidth:imageCanvas.width,imageHeight:imageCanvas.height,localDraft:$('#aiSendLocalDraft').checked?{candidates:smartScanCandidates.map(c=>({id:c.id,type:c.type,name:c.name||'',age:c.age||'',bbox:{x:c.minX/smartScanContext.width,y:c.minY/smartScanContext.height,w:c.w/smartScanContext.width,h:c.h/smartScanContext.height},confidence:c.confidence})),relations:smartScanRelations.map(r=>({type:r.type,status:r.status||'',from:r.from,to:r.to,confidence:r.confidence}))}:null};const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000),res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});clearTimeout(timer);const raw=await res.text();if(!res.ok)throw new Error(`Worker 回傳 ${res.status}：${raw.slice(0,180)}`);let data;try{data=JSON.parse(raw);}catch{data={result:raw};}const parsed=parseAiPayload(data);mergeAiScanResult(parsed);aiSetStatus('AI 判讀完成，結果已加入本機確認清單。請關閉此視窗後逐項核對，再套用。','success');}catch(e){console.error(e);aiSetStatus(`AI 判讀失敗：${e.name==='AbortError'?'連線逾時':e.message}`,'error');}finally{btn.disabled=false;}
+  }
+  function openAiAssist(){
+    if(!smartScanContext?.canvas)return showToast('請先按「開始分析掃描圖」，建立本機候選與遮蔽基準');aiRedactions=[];aiMaskDraft=null;aiMaskMode=false;aiLastUploadPreview=false;$('#aiMaskModeBtn').textContent='手動遮蔽：關';$('#aiMaskModeBtn').setAttribute('aria-pressed','false');$('#aiConsent').checked=false;$('#aiEndpoint').value=safeSessionGet('genogram-ai-endpoint');aiSetStatus(`本機 OCR 文字區：${(smartScanContext.ocrItems||[]).length} 個。請檢查預覽並補上手動遮蔽框。`);drawAiMaskPreview();$('#aiAssistDialog').showModal();
+  }
 
   function clearAll(){
     if(!confirm('確定要清空目前家系圖嗎？')) return;
@@ -2468,6 +2590,9 @@
   $('#reverseTextBtn').addEventListener('click',openReverseText);$('#reverseTextSideBtn').addEventListener('click',openReverseText);$('#closeReverseTextBtn').addEventListener('click',()=>reverseTextDialog.close());$('#refreshReverseTextBtn').addEventListener('click',refreshReverseText);$('#reverseFormat').addEventListener('change',refreshReverseText);['#reverseIncludeNotes','#reverseIncludeRisk','#reverseIncludeVisuals','#reverseAnonymize'].forEach(sel=>$(sel).addEventListener('change',refreshReverseText));$('#copyReverseTextBtn').addEventListener('click',copyReverseText);$('#downloadReverseTextBtn').addEventListener('click',()=>download(`家系圖文字_V${APP_VERSION}.txt`,$('#reverseTextOutput').value,'text/plain;charset=utf-8'));$('#useReverseAsInputBtn').addEventListener('click',()=>{$('#quickInput').value=$('#reverseTextOutput').value;reverseTextDialog.close();showToast('已放入左側文字輸入框，原家系圖未變更');});
   $('#referenceImageInput').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)importReferenceImage(file);e.target.value='';});
   const smartScanDialog=$('#smartScanDialog');$('#smartScanBtn').addEventListener('click',openSmartScan);$('#closeSmartScanBtn').addEventListener('click',()=>smartScanDialog.close());$('#scanAnalyzeBtn').addEventListener('click',analyzeSmartScan);$('#scanReanalyzeBtn').addEventListener('click',analyzeSmartScan);$('#applySmartScanBtn').addEventListener('click',applySmartScan);$('#scanThreshold').addEventListener('input',e=>$('#scanThresholdValue').textContent=e.target.value);$('#scanMinSize').addEventListener('input',e=>$('#scanMinSizeValue').textContent=`${e.target.value} px`);$('#scanSelectAllBtn').addEventListener('click',()=>{const allOn=smartScanCandidates.every(c=>c.checked!==false)&&smartScanRelations.every(r=>r.checked!==false);smartScanCandidates.forEach(c=>c.checked=!allOn);smartScanRelations.forEach(r=>r.checked=!allOn);renderSmartScanResults();renderSmartScanPreview();});
+  const aiAssistDialog=$('#aiAssistDialog');$('#openAiAssistBtn').addEventListener('click',openAiAssist);$('#closeAiAssistBtn').addEventListener('click',()=>aiAssistDialog.close());$('#aiAnalyzeBtn').addEventListener('click',runAiAssist);$('#aiMaskOcr').addEventListener('change',()=>{aiLastUploadPreview=false;drawAiMaskPreview();});$('#aiClearMasksBtn').addEventListener('click',()=>{aiRedactions=[];aiLastUploadPreview=false;drawAiMaskPreview();aiSetStatus('已清除手動遮蔽；自動 OCR 遮蔽仍依勾選狀態顯示。');});$('#aiPreviewUploadBtn').addEventListener('click',()=>{aiLastUploadPreview=!aiLastUploadPreview;drawAiMaskPreview(aiLastUploadPreview);$('#aiPreviewUploadBtn').textContent=aiLastUploadPreview?'返回遮蔽編輯':'預覽實際上傳圖';});$('#aiMaskModeBtn').addEventListener('click',()=>{aiMaskMode=!aiMaskMode;$('#aiMaskModeBtn').textContent=`手動遮蔽：${aiMaskMode?'開':'關'}`;$('#aiMaskModeBtn').setAttribute('aria-pressed',String(aiMaskMode));aiLastUploadPreview=false;drawAiMaskPreview();});
+  const aiCanvas=$('#aiMaskPreview');aiCanvas.addEventListener('pointerdown',evt=>{if(!aiMaskMode)return;evt.preventDefault();const p=getCanvasPoint(evt,aiCanvas);aiMaskDraft={x:p.x,y:p.y,w:0,h:0};aiCanvas.setPointerCapture?.(evt.pointerId);});aiCanvas.addEventListener('pointermove',evt=>{if(!aiMaskDraft)return;const p=getCanvasPoint(evt,aiCanvas),x=Math.min(aiMaskDraft.x,p.x),y=Math.min(aiMaskDraft.y,p.y),w=Math.abs(p.x-aiMaskDraft.x),h=Math.abs(p.y-aiMaskDraft.y);aiMaskDraft={x,y,w,h};drawAiMaskPreview();});const finishAiMask=evt=>{if(!aiMaskDraft)return;evt.preventDefault();if(aiMaskDraft.w>8&&aiMaskDraft.h>8)aiRedactions.push({...aiMaskDraft});aiMaskDraft=null;drawAiMaskPreview();};aiCanvas.addEventListener('pointerup',finishAiMask);aiCanvas.addEventListener('pointercancel',finishAiMask);
+
   $('#referenceVisible').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.visible=e.target.checked;render();persist();syncReferenceControls();});
   $('#referenceLocked').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.locked=e.target.checked;if(e.target.checked&&state.selected?.kind==='reference')state.selected=null;render();persist();syncReferenceControls();});
   let refOpacitySnap=false;$('#referenceOpacity').addEventListener('pointerdown',()=>{if(!refOpacitySnap){snapshot();refOpacitySnap=true;}});$('#referenceOpacity').addEventListener('input',e=>{if(!state.referenceImage)return;state.referenceImage.opacity=Number(e.target.value)/100;redrawReferenceOnly();$('#referenceOpacityValue').textContent=`${e.target.value}%`;schedulePersist();});$('#referenceOpacity').addEventListener('change',()=>{refOpacitySnap=false;});
@@ -2559,7 +2684,7 @@
     repair:()=>{repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);return true;},
     reverseText:(format='compact',options={})=>format==='narrative'?generateNarrativeText(options):format==='list'?generateListText(options):generateCompactText(options),
     hasReference:()=>!!state.referenceImage,
-    smartScan:()=>({candidates:JSON.parse(JSON.stringify(smartScanCandidates)),relations:JSON.parse(JSON.stringify(smartScanRelations))})
+    smartScan:()=>({candidates:JSON.parse(JSON.stringify(smartScanCandidates)),relations:JSON.parse(JSON.stringify(smartScanRelations)),ocrItems:JSON.parse(JSON.stringify(smartScanContext?.ocrItems||[])),redactions:JSON.parse(JSON.stringify(aiRedactions))})
   };
 
 })();
