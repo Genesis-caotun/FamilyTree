@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.2.1</title>
+<title>家系圖快速製作器 V5.3.0</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -162,6 +162,29 @@
 .arrow-symbol{font-size:25px;line-height:1;font-weight:700;display:inline-block;min-width:30px}
 .tool-hint{margin:10px 0 0;padding:9px;border:1px dashed #b9c7d3;border-radius:9px;background:#f8fbfd}
 
+
+/* V5.3 逆向文字與掃描圖描圖工作區 */
+.reference-controls{display:grid;gap:9px;margin-top:9px;padding:10px;border:1px solid #d7e3ea;border-radius:10px;background:#f9fcfe}
+.reference-controls[hidden]{display:none!important}
+.reference-file-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reference-status{padding:8px 9px;border-radius:8px;background:#fff;border:1px solid #e2e8ef;font-size:12px;line-height:1.55;color:#40566a;word-break:break-word}
+.reference-range-row{display:grid;grid-template-columns:80px 1fr 48px;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.reference-range-row input[type="range"]{width:100%}
+.reference-actions{display:flex;gap:7px;flex-wrap:wrap}
+.reference-nudge{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,32px);gap:4px;justify-content:center;padding:6px}
+.reference-nudge .btn{padding:3px}
+.reference-nudge [data-reference-nudge="up"]{grid-column:2}.reference-nudge [data-reference-nudge="left"]{grid-column:1;grid-row:2}.reference-nudge [data-reference-nudge="right"]{grid-column:3;grid-row:2}.reference-nudge [data-reference-nudge="down"]{grid-column:2;grid-row:3}
+#referenceLayer.reference-not-export{opacity:1}
+.reference-image-outline{fill:none;stroke:#355b7d;stroke-width:2;stroke-dasharray:8 6;pointer-events:none}
+.dialog-wide{max-width:820px}
+.reverse-grid{display:grid;grid-template-columns:230px 1fr;gap:14px;align-items:start}
+.reverse-options{display:grid;gap:10px;padding:11px;border:1px solid #e2e8ef;border-radius:10px;background:#fafcfd}
+.reverse-output textarea{min-height:410px;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;white-space:pre-wrap}
+.reverse-summary{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 10px;border:1px solid #d7e3ea;border-radius:8px;background:#f7fafc}
+.scan-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#eef7f4;color:#147d64;border:1px solid #b9dfd4;font-size:11px;font-weight:700}
+@media (max-width:720px){.reverse-grid{grid-template-columns:1fr}.reverse-output textarea{min-height:330px}}
+@media print{#referenceLayer.reference-not-export{display:none!important}}
+
 </style>
 </head>
 <body>
@@ -170,13 +193,14 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.2.1</span></h1>
-        <p>台灣社工家系圖排列｜手繪家庭範圍｜服務單位橢圓｜自由箭頭｜離線可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.3.0</span></h1>
+        <p>台灣社工家系圖排列｜家系圖轉文字｜掃描圖離線描圖｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
       <button class="btn small privacy-toggle" id="anonymizeBtn" type="button" aria-pressed="false">匿名化：關</button>
       <button class="btn small" id="versionBtn" type="button">版本說明</button>
+      <button class="btn small" id="reverseTextBtn" type="button">轉成文字</button>
       <button class="btn small" id="saveProjectBtn">儲存專案</button>
       <label class="btn small" for="loadProjectInput">載入專案</label>
       <input class="file-input" id="loadProjectInput" type="file" accept="application/json" />
@@ -215,6 +239,35 @@
           </div>
         </details>
         <div class="parse-report" id="parseReport" aria-live="polite"></div>
+      </section>
+
+      <section class="section">
+        <h3>掃描圖描圖工作區 <span class="scan-badge">離線</span></h3>
+        <div class="reference-file-row">
+          <label class="btn primary small" for="referenceImageInput">匯入手繪／掃描圖片</label>
+          <input class="file-input" id="referenceImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
+          <button class="btn small" id="reverseTextSideBtn" type="button">目前圖面轉文字</button>
+        </div>
+        <div class="reference-controls" id="referenceControls" hidden>
+          <div class="reference-status" id="referenceStatus">尚未匯入圖片</div>
+          <label class="check"><input type="checkbox" id="referenceVisible" checked /> 顯示掃描底圖</label>
+          <label class="check"><input type="checkbox" id="referenceLocked" checked /> 鎖定底圖位置，避免描圖時誤移</label>
+          <div class="reference-range-row"><span>透明度</span><input type="range" id="referenceOpacity" min="10" max="100" step="5" value="42" /><strong id="referenceOpacityValue">42%</strong></div>
+          <div class="reference-range-row"><span>縮放比例</span><input type="range" id="referenceScale" min="20" max="300" step="5" value="100" /><strong id="referenceScaleValue">100%</strong></div>
+          <div class="reference-actions">
+            <button class="btn small" id="referenceFitBtn" type="button">置中適合畫布</button>
+            <button class="btn small" id="referenceSelectBtn" type="button">選取底圖</button>
+            <button class="btn small danger" id="referenceRemoveBtn" type="button">移除底圖</button>
+          </div>
+          <div class="reference-nudge" aria-label="掃描底圖微調">
+            <button class="btn small" type="button" data-reference-nudge="up">↑</button>
+            <button class="btn small" type="button" data-reference-nudge="left">←</button>
+            <button class="btn small" type="button" data-reference-nudge="right">→</button>
+            <button class="btn small" type="button" data-reference-nudge="down">↓</button>
+          </div>
+          <label class="check"><input type="checkbox" id="referenceIncludeExport" /> 匯出 SVG／PNG／PDF 時包含掃描底圖</label>
+        </div>
+        <p class="hint tool-hint"><strong>本版為離線描圖輔助：</strong>圖片只在目前瀏覽器處理，可調整透明度、大小與位置，再沿著底圖建立人物與關係；本版不會自動辨識手寫文字或符號。正式匯出預設不包含底圖。</p>
       </section>
 
       <section class="section">
@@ -301,7 +354,7 @@
         <div class="privacy"><strong>個資提醒：</strong>專案預設只存於目前瀏覽器，不會自動上傳。暴力、健康、兒少與家庭關係屬高度敏感資料，正式使用仍請依機構個資及資訊安全規範處理。</div>
       </section>
       <section class="section">
-        <div class="version-card"><strong>版本 5.2.1</strong><span>2026-07-28</span><p>伴侶關係符號調整：離婚改為 X，分居改為單一斜線；保留畫筆閉環、服務單位橢圓與自由箭頭。</p></div>
+        <div class="version-card"><strong>版本 5.3.0</strong><span>2026-07-28</span><p>新增家系圖逆向轉文字，以及手繪／掃描圖片離線描圖工作區；底圖可調整透明度、縮放、位置與匯出設定。</p></div>
       </section>
     </aside>
 
@@ -332,6 +385,7 @@
           </defs>
           <rect id="canvasBackground" x="0" y="0" width="1400" height="900" fill="#fff"/>
           <rect id="gridBackground" x="0" y="0" width="1400" height="900" fill="url(#gridPattern)"/>
+          <g id="referenceLayer" class="reference-not-export"></g>
           <g id="frameLayer"></g>
           <g id="relationLayer"></g>
           <g id="nodeLayer"></g>
@@ -344,7 +398,7 @@
 
     <aside class="panel right-panel" id="rightPanel">
       <div class="panel-title panel-title-row"><span>屬性編輯</span><button class="panel-close" id="closeInspectorBtn">關閉</button></div>
-      <div id="inspector" class="empty">請先點選人物、關係線、文字、手繪範圍、服務單位或箭頭。</div>
+      <div id="inspector" class="empty">請先點選人物、關係線、文字、手繪範圍、服務單位、箭頭或掃描底圖。</div>
     </aside>
   </main>
 </div>
@@ -400,10 +454,12 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.2.1</div>
+  <div class="dialog-head">家系圖快速製作器 V5.3.0</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V5.3.0 逆向文字：</strong>可將目前可編輯家系圖輸出為精簡、社工敘述或條列格式，並複製或下載文字檔。</li>
+      <li><strong>V5.3.0 掃描圖描圖：</strong>可離線匯入手繪／掃描圖片，調整透明度、縮放與位置後描圖；正式匯出預設排除底圖。</li>
       <li><strong>V5.2.1 關係符號：</strong>離婚以 X 顯示，分居以單一斜線顯示。</li>
       <li><strong>V5.2.0 圖形工具：</strong>以畫筆圈選取代矩形外框，放開後自動平滑閉環；新增可輸入文字的醫院／服務單位橢圓，以及端點可自由拉伸的箭頭。</li>
       <li><strong>V5.1.2 解析強化：</strong>子女與後代分支的多次婚配，可辨識各任配偶年齡，例如「第一次配偶58歲」；單次婚姻也支援「配偶52歲」。</li>
@@ -422,6 +478,31 @@
   <div class="dialog-foot"><button class="btn primary" id="closeVersionBtn">知道了</button></div>
 </dialog>
 
+
+<dialog id="reverseTextDialog" class="dialog-wide">
+  <div class="dialog-head">將目前家系圖轉成文字</div>
+  <div class="dialog-body">
+    <div class="reverse-grid">
+      <div class="reverse-options">
+        <div class="field"><label>輸出格式</label><select id="reverseFormat"><option value="compact">精簡紀錄格式</option><option value="narrative">社工敘述格式</option><option value="list">條列核對格式</option></select></div>
+        <label class="check"><input type="checkbox" id="reverseIncludeNotes" checked /> 包含人物備註</label>
+        <label class="check"><input type="checkbox" id="reverseIncludeRisk" checked /> 包含高風險標記</label>
+        <label class="check"><input type="checkbox" id="reverseIncludeVisuals" checked /> 包含家庭範圍、服務單位、箭頭與圖面文字</label>
+        <label class="check"><input type="checkbox" id="reverseAnonymize" /> 使用匿名代號</label>
+        <button class="btn" id="refreshReverseTextBtn" type="button">重新產生文字</button>
+        <div class="reverse-summary" id="reverseSummary">將直接讀取目前圖面資料，不是圖片辨識；修改家系圖後可隨時重新產生。</div>
+      </div>
+      <div class="reverse-output field"><label>文字結果</label><textarea id="reverseTextOutput" spellcheck="false"></textarea></div>
+    </div>
+  </div>
+  <div class="dialog-foot row wrap">
+    <button class="btn" id="copyReverseTextBtn" type="button">複製文字</button>
+    <button class="btn" id="downloadReverseTextBtn" type="button">下載 TXT</button>
+    <button class="btn" id="useReverseAsInputBtn" type="button">放入文字輸入框</button>
+    <button class="btn primary" id="closeReverseTextBtn" type="button">關閉</button>
+  </div>
+</dialog>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -432,6 +513,7 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => [...document.querySelectorAll(sel)];
   const canvas = $('#canvas');
+  const referenceLayer = $('#referenceLayer');
   const frameLayer = $('#frameLayer');
   const relationLayer = $('#relationLayer');
   const nodeLayer = $('#nodeLayer');
@@ -443,17 +525,18 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '5.2.1';
+  const APP_VERSION = '5.3.0';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
   const defaultState = () => ({
-    version: 5.2,
+    version: 5.3,
     nodes: [],
     relations: [],
     regions: [],
     ellipses: [],
     arrows: [],
+    referenceImage: null,
     frames: [], // 僅供舊版專案相容，載入時會轉換為手繪範圍
     texts: [],
     meta: {title:'家系圖', subtitle:'', showRiskMarkers:true, snapToGrid:true, gridSize:GRID_SIZE, anonymize:false, anonymizeMode:'code', anonymizeHideNotes:true, touchLongPress:true, nudgeStep:2},
@@ -473,6 +556,8 @@
   let touchPending = null;
   let toolMode = null;
   let drawDraft = null;
+  const referenceAssets = new Map();
+  let quotaWarningShown = false;
 
   const uid = (prefix) => prefix + '_' + Math.random().toString(36).slice(2, 9);
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -536,17 +621,36 @@
   function normalizeArrow(a){
     return {id:a.id||uid('a'),x1:Number(a.x1??500),y1:Number(a.y1??450),x2:Number(a.x2??800),y2:Number(a.y2??450),strokeWidth:clamp(Number(a.strokeWidth)||2.6,1,10),color:a.color||'#111111',dashed:!!a.dashed};
   }
+  function normalizeReferenceImage(img){
+    if(!img)return null;
+    const assetId=img.assetId||uid('img');
+    if(img.dataUrl)referenceAssets.set(assetId,img.dataUrl);
+    const baseWidth=Math.max(80,Number(img.baseWidth||img.width||900));
+    const baseHeight=Math.max(60,Number(img.baseHeight||img.height||600));
+    const scale=clamp(Number(img.scale)||100,20,300);
+    return {id:img.id||uid('ref'),assetId,name:img.name||'掃描圖片',naturalWidth:Number(img.naturalWidth)||0,naturalHeight:Number(img.naturalHeight)||0,x:Number(img.x??250),y:Number(img.y??150),baseWidth,baseHeight,width:Math.max(80,Number(img.width)||baseWidth*scale/100),height:Math.max(60,Number(img.height)||baseHeight*scale/100),scale,opacity:clamp(Number(img.opacity)||0.42,0.1,1),visible:img.visible!==false,locked:img.locked!==false,includeInExport:!!img.includeInExport};
+  }
+  function referenceImageHref(ref=state.referenceImage){return ref?referenceAssets.get(ref.assetId)||'':'';}
+  function serializeState({includeReferenceData=true}={}){
+    const copy=JSON.parse(JSON.stringify({...state,selected:null}));
+    if(copy.referenceImage){
+      if(includeReferenceData)copy.referenceImage.dataUrl=referenceImageHref();
+      else delete copy.referenceImage.dataUrl;
+    }
+    return copy;
+  }
 
   function normalizeState(data={}){
     const base=defaultState();
     const legacyRegions=(data.frames||[]).map(f=>normalizeRegion({...f,points:roundedRectRegionPoints(f)}));
     return {
-      ...base, ...data, version:5.2, selected:null,
+      ...base, ...data, version:5.3, selected:null,
       nodes:(data.nodes||[]).map(normalizeNode),
       relations:(data.relations||[]).map(normalizeRelation),
       regions:[...(data.regions||[]).map(normalizeRegion),...legacyRegions],
       ellipses:(data.ellipses||[]).map(normalizeEllipse),
       arrows:(data.arrows||[]).map(normalizeArrow),
+      referenceImage:normalizeReferenceImage(data.referenceImage),
       frames:[],
       texts:(data.texts||[]).map(t=>({id:t.id||uid('t'),x:Number(t.x??700),y:Number(t.y??150),text:t.text||'文字說明',fontSize:Number(t.fontSize??22),bold:!!t.bold})),
       meta:{...base.meta,...(data.meta||{}),gridSize:GRID_SIZE}
@@ -574,7 +678,16 @@
   }
 
   function persist(){
-    try{ localStorage.setItem('genogram-builder-state', JSON.stringify({...state, selected:null})); }catch(e){}
+    try{
+      localStorage.setItem('genogram-builder-state',JSON.stringify(serializeState({includeReferenceData:true})));
+    }catch(e){
+      try{
+        const stripped=serializeState({includeReferenceData:false});
+        stripped.referenceImage=null;
+        localStorage.setItem('genogram-builder-state',JSON.stringify(stripped));
+        if(!quotaWarningShown){quotaWarningShown=true;showToast('掃描底圖較大，瀏覽器暫存未保存底圖；請下載 JSON 專案備份');}
+      }catch(_e){}
+    }
   }
 
   function restore(){
@@ -685,6 +798,7 @@
   function getRegion(id){ return state.regions.find(r => r.id === id); }
   function getEllipse(id){ return state.ellipses.find(e => e.id === id); }
   function getArrow(id){ return state.arrows.find(a => a.id === id); }
+  function getReference(id){ return state.referenceImage?.id===id?state.referenceImage:null; }
   function getText(id){ return state.texts.find(t => t.id === id); }
 
   function updateGridVisual(){
@@ -728,6 +842,7 @@
   }
 
   function render(skipInspector=false){
+    referenceLayer.innerHTML = '';
     frameLayer.innerHTML = '';
     relationLayer.innerHTML = '';
     nodeLayer.innerHTML = '';
@@ -735,6 +850,7 @@
     metaLayer.innerHTML = '';
     selectionLayer.innerHTML = '';
 
+    drawReferenceImage();
     state.regions.forEach(drawRegion);
     state.ellipses.forEach(drawEllipse);
     state.arrows.forEach(drawArrow);
@@ -744,8 +860,54 @@
     drawMetaLayer();
     drawSelection();
     updateGridVisual();
+    syncReferenceControls();
     if(!skipInspector) renderInspector();
     updateStatus();
+  }
+
+  function drawReferenceImage(){
+    referenceLayer.innerHTML='';
+    const ref=state.referenceImage,href=referenceImageHref(ref);
+    referenceLayer.classList.toggle('reference-not-export',!ref?.includeInExport);
+    if(!ref||!ref.visible||!href)return;
+    const g=svgEl('g',{'data-kind':'reference','data-id':ref.id,class:'draggable'});
+    const image=svgEl('image',{x:ref.x,y:ref.y,width:ref.width,height:ref.height,href,opacity:ref.opacity,'preserveAspectRatio':'xMidYMid meet'});
+    image.setAttributeNS('http://www.w3.org/1999/xlink','href',href);
+    if(ref.locked){g.style.pointerEvents='none';image.style.pointerEvents='none';}
+    else{g.addEventListener('pointerdown',startDrag);g.addEventListener('click',selectFromEvent);}
+    g.appendChild(image);referenceLayer.appendChild(g);
+  }
+  function redrawReferenceOnly(){drawReferenceImage();}
+  function referenceFitToCanvas(withSnapshot=true){
+    const ref=state.referenceImage;if(!ref)return;
+    if(withSnapshot)snapshot();
+    const maxW=1120,maxH=720,ratio=Math.min(maxW/(ref.naturalWidth||ref.baseWidth),maxH/(ref.naturalHeight||ref.baseHeight),1);
+    ref.baseWidth=Math.max(120,(ref.naturalWidth||ref.baseWidth)*ratio);ref.baseHeight=Math.max(90,(ref.naturalHeight||ref.baseHeight)*ratio);ref.scale=100;ref.width=ref.baseWidth;ref.height=ref.baseHeight;ref.x=700-ref.width/2;ref.y=450-ref.height/2;
+    redrawReferenceOnly();redrawSelectionOnly();syncReferenceControls();persist();
+  }
+  function updateReferenceScale(percent){
+    const ref=state.referenceImage;if(!ref)return;ref.scale=clamp(Number(percent)||100,20,300);ref.width=ref.baseWidth*ref.scale/100;ref.height=ref.baseHeight*ref.scale/100;redrawReferenceOnly();redrawSelectionOnly();syncReferenceControls();schedulePersist();
+  }
+  function syncReferenceControls(){
+    const ref=state.referenceImage,controls=$('#referenceControls');
+    if(!controls)return;controls.hidden=!ref;
+    if(!ref)return;
+    $('#referenceStatus').textContent=`${ref.name}｜${ref.naturalWidth||'?'} × ${ref.naturalHeight||'?'} px｜${ref.locked?'已鎖定':'可拖曳'}`;
+    $('#referenceVisible').checked=ref.visible!==false;$('#referenceLocked').checked=ref.locked!==false;$('#referenceOpacity').value=String(Math.round((ref.opacity||.42)*100));$('#referenceOpacityValue').textContent=`${Math.round((ref.opacity||.42)*100)}%`;$('#referenceScale').value=String(Math.round(ref.scale||100));$('#referenceScaleValue').textContent=`${Math.round(ref.scale||100)}%`;$('#referenceIncludeExport').checked=!!ref.includeInExport;
+  }
+  async function importReferenceImage(file){
+    if(!file||!file.type.startsWith('image/'))return showToast('請選擇 PNG、JPG 或 WebP 圖片');
+    if(file.size>25*1024*1024)return showToast('圖片超過 25MB，請先縮小後再匯入');
+    try{
+      const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+      const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=raw;});
+      const maxDim=2000,compressScale=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*compressScale));c.height=Math.max(1,Math.round(img.naturalHeight*compressScale));const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
+      const dataUrl=c.toDataURL('image/jpeg',0.88),assetId=uid('img');referenceAssets.set(assetId,dataUrl);snapshot();
+      const ratio=Math.min(1120/c.width,720/c.height,1),baseWidth=Math.max(120,c.width*ratio),baseHeight=Math.max(90,c.height*ratio);
+      state.referenceImage=normalizeReferenceImage({id:uid('ref'),assetId,name:file.name,naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,x:700-baseWidth/2,y:450-baseHeight/2,baseWidth,baseHeight,width:baseWidth,height:baseHeight,scale:100,opacity:.42,visible:true,locked:true,includeInExport:false});
+      state.selected=null;render();syncReferenceControls();persist();showToast('掃描底圖已匯入，可開始描圖');
+    }catch(e){showToast('圖片無法讀取，請改用 JPG 或 PNG');}
   }
 
   function regionBounds(region){
@@ -1287,6 +1449,8 @@
       const e=getEllipse(id);if(!e)return;box={x:e.x-e.width/2-8,y:e.y-e.height/2-8,w:e.width+16,h:e.height+16};
     }else if(kind==='arrow'){
       const a=getArrow(id);if(!a)return;const minX=Math.min(a.x1,a.x2),minY=Math.min(a.y1,a.y2),maxX=Math.max(a.x1,a.x2),maxY=Math.max(a.y1,a.y2);box={x:minX-12,y:minY-12,w:Math.max(24,maxX-minX+24),h:Math.max(24,maxY-minY+24)};
+    }else if(kind==='reference'){
+      const ref=getReference(id);if(!ref)return;box={x:ref.x-8,y:ref.y-8,w:ref.width+16,h:ref.height+16};
     }else if(kind==='text'){
       const t=getText(id);if(!t)return;box={x:t.x-8,y:t.y-(t.fontSize||22)-8,w:Math.max(80,(t.text||'').length*(t.fontSize||22)*.95),h:(t.fontSize||22)+18};
     }
@@ -1317,6 +1481,7 @@
     else if(kind==='region')replaceLayerItem(frameLayer,'region',id,drawRegion,getRegion(id));
     else if(kind==='ellipse')replaceLayerItem(frameLayer,'ellipse',id,drawEllipse,getEllipse(id));
     else if(kind==='arrow')replaceLayerItem(frameLayer,'arrow',id,drawArrow,getArrow(id));
+    else if(kind==='reference')redrawReferenceOnly();
     else if(kind==='text')replaceLayerItem(textLayer,'text',id,drawText,getText(id));
     else if(kind==='relation')relations=true;
     if(relations)redrawRelationsOnly();
@@ -1342,7 +1507,7 @@
   }
 
   function objectForKind(kind,id){
-    if(kind==='node')return getNode(id);if(kind==='region')return getRegion(id);if(kind==='ellipse')return getEllipse(id);if(kind==='arrow')return getArrow(id);if(kind==='text')return getText(id);return null;
+    if(kind==='node')return getNode(id);if(kind==='region')return getRegion(id);if(kind==='ellipse')return getEllipse(id);if(kind==='arrow')return getArrow(id);if(kind==='reference')return getReference(id);if(kind==='text')return getText(id);return null;
   }
   function translateObject(kind,obj,dx,dy){
     if(kind==='region')obj.points=obj.points.map(p=>({x:p.x+dx,y:p.y+dy}));
@@ -1451,6 +1616,7 @@
     if(kind==='region') renderRegionInspector(getRegion(id));
     if(kind==='ellipse') renderEllipseInspector(getEllipse(id));
     if(kind==='arrow') renderArrowInspector(getArrow(id));
+    if(kind==='reference') renderReferenceInspector(getReference(id));
     if(kind==='text') renderTextInspector(getText(id));
   }
 
@@ -1582,6 +1748,23 @@
     bindInspector(a,'arrow');
   }
 
+  function renderReferenceInspector(ref){
+    if(!ref)return;
+    inspector.innerHTML=`<div class="stack">
+      <div class="reference-status">${esc(ref.name)}<br>${ref.naturalWidth||'?'} × ${ref.naturalHeight||'?'} px</div>
+      <label class="check"><input type="checkbox" data-k="visible" ${ref.visible!==false?'checked':''}/> 顯示掃描底圖</label>
+      <label class="check"><input type="checkbox" data-k="locked" ${ref.locked!==false?'checked':''}/> 鎖定位置</label>
+      <div class="field"><label>透明度</label><input type="range" min="0.1" max="1" step="0.05" value="${ref.opacity}" data-k="opacity" /></div>
+      ${nudgeControlsHtml()}
+      <button class="btn" type="button" data-reference-fit>置中適合畫布</button>
+      <label class="check"><input type="checkbox" data-k="includeInExport" ${ref.includeInExport?'checked':''}/> 匯出時包含底圖</label>
+      <div class="hint">解鎖後，第一次點選底圖，第二次按住即可移動。描圖完成後建議重新鎖定。</div>
+      <div class="inspector-actions"><button class="btn danger" data-delete>移除掃描底圖</button></div>
+    </div>`;
+    bindInspector(ref,'reference');
+    inspector.querySelector('[data-reference-fit]')?.addEventListener('click',()=>referenceFitToCanvas(true));
+  }
+
   function renderTextInspector(t){
     if(!t) return;
     inspector.innerHTML=`
@@ -1600,11 +1783,12 @@
       const event=(el.type==='checkbox'||el.tagName==='SELECT'||el.type==='range')?'change':'input';let snapTaken=false;
       const takeSnapshot=()=>{if(!snapTaken){snapshot();snapTaken=true;}};el.addEventListener('focus',takeSnapshot,{once:true});
       el.addEventListener(event,()=>{
-        takeSnapshot();let val=el.type==='checkbox'?el.checked:el.value;if(['size','width','height','fontSize','strokeWidth'].includes(el.dataset.k))val=Number(val);obj[el.dataset.k]=val;
+        takeSnapshot();let val=el.type==='checkbox'?el.checked:el.value;if(['size','width','height','fontSize','strokeWidth','opacity'].includes(el.dataset.k))val=Number(val);obj[el.dataset.k]=val;
         const structural=(kind==='relation'&&['type','status','subtype'].includes(el.dataset.k))||(kind==='node'&&el.dataset.k==='sex');
         if(kind==='relation'&&el.dataset.k==='type')obj.subtype=val==='parent'?'biological':val==='twins'?'unknownTwins':val==='abuse'?'physical':'';
         if(structural)render(event==='input');
         else refreshVisual(kind,obj.id,{relations:kind==='relation'||(kind==='node'&&el.dataset.k==='size'),meta:kind==='node'&&['risk','riskNote','name','note'].includes(el.dataset.k)});
+        if(kind==='reference')syncReferenceControls();
         schedulePersist();
       });
     });
@@ -1624,13 +1808,14 @@
     else if(kind==='region') state.regions=state.regions.filter(r=>r.id!==id);
     else if(kind==='ellipse') state.ellipses=state.ellipses.filter(e=>e.id!==id);
     else if(kind==='arrow') state.arrows=state.arrows.filter(a=>a.id!==id);
+    else if(kind==='reference') state.referenceImage=null;
     else if(kind==='text') state.texts=state.texts.filter(t=>t.id!==id);
-    state.selected=null; render();persist();
+    state.selected=null; render();syncReferenceControls();persist();
   }
 
   function updateStatus(){
-    const n=state.nodes.length,r=state.relations.length,risk=state.nodes.filter(x=>x.risk).length,shapes=state.regions.length+state.ellipses.length+state.arrows.length;
-    statusText.textContent=toolMode==='region'?'畫筆模式｜按住拖曳圈選同住／家庭範圍，放開後自動平滑閉環':`V${APP_VERSION}｜人物／事件 ${n}｜關係 ${r}｜圖樣 ${shapes}${risk?`｜風險標記 ${risk}`:''}｜網格 ${isGridEnabled()?'開':'關'}${state.meta?.anonymize?'｜匿名模式':''}｜點一下選取；再次按住拖曳`;
+    const n=state.nodes.length,r=state.relations.length,risk=state.nodes.filter(x=>x.risk).length,shapes=state.regions.length+state.ellipses.length+state.arrows.length,hasRef=!!state.referenceImage;
+    statusText.textContent=toolMode==='region'?'畫筆模式｜按住拖曳圈選同住／家庭範圍，放開後自動平滑閉環':`V${APP_VERSION}｜人物／事件 ${n}｜關係 ${r}｜圖樣 ${shapes}${risk?`｜風險標記 ${risk}`:''}｜網格 ${isGridEnabled()?'開':'關'}${state.meta?.anonymize?'｜匿名模式':''}${hasRef?'｜掃描底圖':''}｜點一下選取；再次按住拖曳`;
   }
 
   function populateRelationSelects(){
@@ -1856,6 +2041,81 @@
     if(withSnapshot)showToast(repairedMissingParents?`已補回 ${repairedMissingParents} 條缺漏的另一位父母連線，並重新排列`:'已修正多次婚配家庭聯結，並依同代同列、長左幼右重新排列');
   }
 
+  const partnerStatusText=status=>({married:'婚姻',cohabiting:'同居',separated:'分居',divorced:'離婚'}[status]||'伴侶');
+  const relationTextName=r=>({care:'照顧／支持',close:'關係親密',conflict:'關係衝突',closeConflict:'親密但衝突',abuse:'施暴／受暴',cutoff:'關係中斷',twins:'雙胞胎／多胞胎'}[r.type]||r.type);
+  const parentSubtypeText=subtype=>({biological:'親生',adopted:'收養',foster:'寄養'}[subtype]||'親子');
+  function reverseName(n,anonymous=false){
+    if(!n)return'未命名人物';
+    if(anonymous){const idx=Math.max(0,state.nodes.findIndex(x=>x.id===n.id));return`${alphaCode(idx)}${sexShort(n.sex)}`;}
+    return n.name||`${sexName(n.sex)}${state.nodes.findIndex(x=>x.id===n.id)+1}`;
+  }
+  function reverseNodeDetails(n,{includeNotes=true,includeRisk=true,anonymous=false}={}){
+    const parts=[];
+    if(n.sex==='pregnancy'){parts.push(n.gestationWeeks?`懷孕${n.gestationWeeks}週`:'懷孕');}
+    else if(n.sex==='loss'){parts.push(lossTypeName(n.lossType));}
+    else{parts.push(sexName(n.sex));if(n.age)parts.push(`${n.age}歲`);if(n.deceased)parts.push('已歿');}
+    if(n.proband)parts.push('案主／個案');
+    if(includeNotes&&n.note&&!(anonymous&&state.meta?.anonymizeHideNotes!==false))parts.push(n.note);
+    if(includeRisk&&n.risk)parts.push(`高風險：${n.riskNote||'需注意'}`);
+    return parts.join('，');
+  }
+  function computeGenerationMap(){
+    const parent={};state.nodes.forEach(n=>parent[n.id]=n.id);const find=id=>parent[id]===id?id:(parent[id]=find(parent[id]));const union=(a,b)=>{a=find(a);b=find(b);if(a!==b)parent[b]=a;};state.relations.filter(r=>r.type==='partner').forEach(r=>{if(parent[r.from]&&parent[r.to])union(r.from,r.to);});
+    const comps=new Set(state.nodes.map(n=>find(n.id))),incoming=new Map([...comps].map(id=>[id,new Set()])),outgoing=new Map([...comps].map(id=>[id,new Set()]));
+    state.relations.filter(r=>r.type==='parent').forEach(r=>{if(!parent[r.from]||!parent[r.to])return;const a=find(r.from),b=find(r.to);if(a!==b){outgoing.get(a)?.add(b);incoming.get(b)?.add(a);}});
+    const gen=new Map(),roots=[...comps].filter(id=>!incoming.get(id)?.size);(roots.length?roots:[...comps].slice(0,1)).forEach(id=>gen.set(id,0));let changed=true,guard=0;while(changed&&guard++<40){changed=false;outgoing.forEach((targets,from)=>{if(!gen.has(from))return;targets.forEach(to=>{const v=gen.get(from)+1;if(!gen.has(to)||gen.get(to)<v){gen.set(to,v);changed=true;}});});}comps.forEach(id=>{if(!gen.has(id))gen.set(id,0);});return new Map(state.nodes.map(n=>[n.id,gen.get(find(n.id))||0]));
+  }
+  function partnerChildren(r){
+    const parentRels=state.relations.filter(x=>x.type==='parent');const explicit=new Set(parentRels.filter(x=>x.unionId===r.id).map(x=>x.to));if(explicit.size)return[...explicit].map(getNode).filter(Boolean);
+    const fromChildren=new Set(parentRels.filter(x=>x.from===r.from).map(x=>x.to));return parentRels.filter(x=>x.from===r.to&&fromChildren.has(x.to)).map(x=>getNode(x.to)).filter(Boolean);
+  }
+  function pointInPolygon(point,polygon){let inside=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j],cross=((a.y>point.y)!==(b.y>point.y))&&(point.x<(b.x-a.x)*(point.y-a.y)/((b.y-a.y)||1e-9)+a.x);if(cross)inside=!inside;}return inside;}
+  function nearestArrowObject(x,y,anonymous){
+    const candidates=[];state.nodes.forEach(n=>candidates.push({x:n.x,y:n.y,label:reverseName(n,anonymous),radius:n.size/2+70}));state.ellipses.forEach(e=>candidates.push({x:e.x,y:e.y,label:e.text||'服務單位',radius:Math.max(e.width,e.height)/2+50}));
+    let best=null;for(const c of candidates){const d=Math.hypot(x-c.x,y-c.y);if(d<=c.radius&&(!best||d<best.d))best={...c,d};}return best?.label||'畫布位置';
+  }
+  function reverseData(options={}){
+    const anonymous=!!options.anonymous,includeNotes=options.includeNotes!==false,includeRisk=options.includeRisk!==false,includeVisuals=options.includeVisuals!==false,gen=computeGenerationMap();
+    const people=[...state.nodes].sort((a,b)=>(gen.get(a.id)-gen.get(b.id))||(a.x-b.x));
+    const partnerRels=state.relations.filter(r=>r.type==='partner'),parentRels=state.relations.filter(r=>r.type==='parent'),otherRels=state.relations.filter(r=>!['partner','parent'].includes(r.type));
+    const representedParents=new Set();partnerRels.forEach(r=>partnerChildren(r).forEach(c=>{parentRels.filter(p=>p.to===c.id&&(p.from===r.from||p.from===r.to)).forEach(p=>representedParents.add(p.id));}));
+    const regions=includeVisuals?state.regions.map(r=>({label:r.label||'同住／家庭範圍',members:state.nodes.filter(n=>pointInPolygon({x:n.x,y:n.y},r.points)).map(n=>reverseName(n,anonymous))})):[];
+    const services=includeVisuals?state.ellipses.map(e=>e.text||'服務醫院／單位'):[];
+    const arrows=includeVisuals?state.arrows.map(a=>`${nearestArrowObject(a.x1,a.y1,anonymous)} → ${nearestArrowObject(a.x2,a.y2,anonymous)}`):[];
+    const texts=includeVisuals?state.texts.map(t=>t.text).filter(Boolean):[];
+    return{anonymous,includeNotes,includeRisk,includeVisuals,gen,people,partnerRels,parentRels:parentRels.filter(r=>!representedParents.has(r.id)),otherRels,regions,services,arrows,texts};
+  }
+  function generateCompactText(options={}){
+    const d=reverseData(options),lines=[];lines.push(`家系圖：${state.meta?.title||'家系圖'}`);if(state.meta?.subtitle)lines.push(`副標題／案號：${state.meta.subtitle}`);lines.push('');
+    let current=-1;d.people.forEach(n=>{const g=d.gen.get(n.id)||0;if(g!==current){current=g;lines.push(`【第${g+1}代】`);}const role=n.proband?'案主':'人物';lines.push(`${role}：${reverseName(n,d.anonymous)}，${reverseNodeDetails(n,d)}`);});
+    if(d.partnerRels.length){lines.push('','【伴侶與子女】');d.partnerRels.forEach(r=>{const a=getNode(r.from),b=getNode(r.to),children=partnerChildren(r);let s=`${partnerStatusText(r.status)}：${reverseName(a,d.anonymous)} — ${reverseName(b,d.anonymous)}`;if(r.label)s+=`（${r.label}）`;s+=children.length?`；子女：${children.map(c=>`${reverseName(c,d.anonymous)}（${reverseNodeDetails(c,{...d,includeNotes:false,includeRisk:false})}）`).join('、')}`:'；無已登錄子女';lines.push(s);});}
+    if(d.parentRels.length){lines.push('','【其他親子關係】');d.parentRels.forEach(r=>lines.push(`${parentSubtypeText(r.subtype)}：${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`（${r.label}）`:''}`));}
+    if(d.otherRels.length){lines.push('','【其他家庭互動】');d.otherRels.forEach(r=>lines.push(`${relationTextName(r)}：${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`（${r.label}）`:''}`));}
+    appendVisualText(lines,d);return lines.join('\n').trim();
+  }
+  function appendVisualText(lines,d){
+    if(!d.includeVisuals)return;if(d.regions.length||d.services.length||d.arrows.length||d.texts.length)lines.push('','【家庭範圍與服務資源】');d.regions.forEach(r=>lines.push(`${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));if(d.services.length)lines.push(`服務醫院／單位：${d.services.join('、')}`);d.arrows.forEach(a=>lines.push(`圖面箭頭：${a}`));d.texts.forEach(t=>lines.push(`圖面文字：${t}`));
+  }
+  function generateNarrativeText(options={}){
+    const d=reverseData(options),paragraphs=[];paragraphs.push(`${state.meta?.title||'本家系圖'}共記錄${d.people.length}位人物或家庭事件，包含${d.partnerRels.length}組伴侶關係及${state.relations.filter(r=>r.type==='parent').length}筆親子關係。`);
+    const groups=new Map();d.people.forEach(n=>{const g=d.gen.get(n.id)||0;if(!groups.has(g))groups.set(g,[]);groups.get(g).push(n);});[...groups.keys()].sort((a,b)=>a-b).forEach(g=>{const desc=groups.get(g).map(n=>`${reverseName(n,d.anonymous)}（${reverseNodeDetails(n,d)}）`).join('、');paragraphs.push(`第${g+1}代成員包括${desc}。`);});
+    d.partnerRels.forEach(r=>{const a=getNode(r.from),b=getNode(r.to),children=partnerChildren(r);let s=`${reverseName(a,d.anonymous)}與${reverseName(b,d.anonymous)}為${partnerStatusText(r.status)}關係`;if(r.label)s+=`，關係註記為「${r.label}」`;s+=children.length?`，兩人登錄之子女為${children.map(c=>reverseName(c,d.anonymous)).join('、')}。`:'，目前圖面未登錄共同子女。';paragraphs.push(s);});
+    d.parentRels.forEach(r=>paragraphs.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}之間為${parentSubtypeText(r.subtype)}親子關係${r.label?`，註記為「${r.label}」`:''}。`));
+    d.otherRels.forEach(r=>paragraphs.push(`${reverseName(getNode(r.from),d.anonymous)}與${reverseName(getNode(r.to),d.anonymous)}之間標示為${relationTextName(r)}${r.label?`，註記為「${r.label}」`:''}。`));
+    if(d.includeVisuals){d.regions.forEach(r=>paragraphs.push(`${r.label}包含${r.members.length?r.members.join('、'):'尚未判定之成員'}。`));if(d.services.length)paragraphs.push(`圖面所列服務醫院或單位包括${d.services.join('、')}。`);d.arrows.forEach(a=>paragraphs.push(`圖面另以箭頭標示${a}。`));if(d.texts.length)paragraphs.push(`其他圖面說明包括：${d.texts.join('；')}。`);}
+    return paragraphs.join('\n\n');
+  }
+  function generateListText(options={}){
+    const d=reverseData(options),lines=[`【${state.meta?.title||'家系圖'}】`,'','一、人物／事件'];d.people.forEach(n=>lines.push(`• 第${(d.gen.get(n.id)||0)+1}代｜${reverseName(n,d.anonymous)}｜${reverseNodeDetails(n,d)}`));
+    lines.push('','二、伴侶關係');if(!d.partnerRels.length)lines.push('• 無');d.partnerRels.forEach(r=>{const children=partnerChildren(r);lines.push(`• ${reverseName(getNode(r.from),d.anonymous)} ↔ ${reverseName(getNode(r.to),d.anonymous)}｜${partnerStatusText(r.status)}${r.label?`｜${r.label}`:''}${children.length?`｜子女：${children.map(c=>reverseName(c,d.anonymous)).join('、')}`:''}`);});
+    lines.push('','三、親子與其他關係');if(!d.parentRels.length&&!d.otherRels.length)lines.push('• 無其他未列關係');d.parentRels.forEach(r=>lines.push(`• ${parentSubtypeText(r.subtype)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));d.otherRels.forEach(r=>lines.push(`• ${relationTextName(r)}｜${reverseName(getNode(r.from),d.anonymous)} → ${reverseName(getNode(r.to),d.anonymous)}${r.label?`｜${r.label}`:''}`));
+    if(d.includeVisuals){lines.push('','四、家庭範圍與服務資源');if(!d.regions.length&&!d.services.length&&!d.arrows.length&&!d.texts.length)lines.push('• 無');d.regions.forEach(r=>lines.push(`• ${r.label}：${r.members.length?r.members.join('、'):'未指定成員'}`));d.services.forEach(s=>lines.push(`• 服務單位：${s}`));d.arrows.forEach(a=>lines.push(`• 箭頭：${a}`));d.texts.forEach(t=>lines.push(`• 圖面文字：${t}`));}return lines.join('\n');
+  }
+  function reverseTextOptions(){return{includeNotes:$('#reverseIncludeNotes').checked,includeRisk:$('#reverseIncludeRisk').checked,includeVisuals:$('#reverseIncludeVisuals').checked,anonymous:$('#reverseAnonymize').checked};}
+  function refreshReverseText(){const format=$('#reverseFormat').value,opts=reverseTextOptions();const result=format==='narrative'?generateNarrativeText(opts):format==='list'?generateListText(opts):generateCompactText(opts);$('#reverseTextOutput').value=result;$('#reverseSummary').textContent=`已轉換 ${state.nodes.length} 位人物／事件、${state.relations.length} 筆關係、${state.regions.length+state.ellipses.length+state.arrows.length} 個圖樣。文字可再手動修訂。`;return result;}
+  function openReverseText(){if(!state.nodes.length)return showToast('目前沒有可轉換的人物資料');$('#reverseAnonymize').checked=!!state.meta?.anonymize;refreshReverseText();$('#reverseTextDialog').showModal();}
+  async function copyReverseText(){const text=$('#reverseTextOutput').value;try{await navigator.clipboard.writeText(text);showToast('文字已複製');}catch(e){const el=$('#reverseTextOutput');el.select();document.execCommand('copy');showToast('文字已複製');}}
+
   function clearAll(){
     if(!confirm('確定要清空目前家系圖嗎？')) return;
     snapshot(); state=defaultState();render();persist();
@@ -1869,6 +2129,7 @@
 
   function getContentBounds(padding=EXPORT_PADDING){
     const boxes=[];
+    const ref=state.referenceImage;if(ref?.visible&&ref.includeInExport)boxes.push({x:ref.x,y:ref.y,w:ref.width,h:ref.height});
     state.nodes.forEach(n=>{const r=n.size/2,caption=[displayNodeName(n),n.sex==='loss'?lossTypeName(n.lossType):'',displayNodeNote(n)].filter(Boolean).join('・');boxes.push({x:n.x-r-50,y:n.y-r-55,w:n.size+100,h:n.size+55+(caption?35:0)});});
     state.regions.forEach(r=>{const b=regionBounds(r);boxes.push({x:b.x-25,y:b.y-35,w:b.w+50,h:b.h+60});});
     state.ellipses.forEach(e=>boxes.push({x:e.x-e.width/2-20,y:e.y-e.height/2-20,w:e.width+40,h:e.height+40}));
@@ -1882,7 +2143,7 @@
   }
   function getCleanSvgData(){
     const bounds=getContentBounds(),clone=canvas.cloneNode(true);clone.querySelector('#selectionLayer')?.remove();clone.querySelector('#gridBackground')?.remove();
-    clone.querySelector('#canvasBackground')?.remove();
+    clone.querySelector('#canvasBackground')?.remove();if(!state.referenceImage?.includeInExport)clone.querySelector('#referenceLayer')?.remove();
     const bg=document.createElementNS(SVG_NS,'rect');bg.setAttribute('x',bounds.x);bg.setAttribute('y',bounds.y);bg.setAttribute('width',bounds.w);bg.setAttribute('height',bounds.h);bg.setAttribute('fill','#fff');clone.insertBefore(bg,clone.firstChild.nextSibling);
     clone.setAttribute('xmlns',SVG_NS);clone.setAttribute('viewBox',`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`);clone.setAttribute('width',bounds.w);clone.setAttribute('height',bounds.h);
     return{svg:new XMLSerializer().serializeToString(clone),bounds};
@@ -1894,7 +2155,7 @@
     img.onload=()=>{const maxDim=Math.max(data.bounds.w,data.bounds.h),scale=Math.min(2.2,5000/maxDim),c=document.createElement('canvas');c.width=Math.max(1,Math.round(data.bounds.w*scale));c.height=Math.max(1,Math.round(data.bounds.h*scale));const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=exportName('png');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)},'image/png');};img.src=url;
   }
 
-  function saveProject(){ download(`家系圖專案_V${APP_VERSION}.json`,JSON.stringify({...state,selected:null},null,2),'application/json;charset=utf-8'); }
+  function saveProject(){ download(`家系圖專案_V${APP_VERSION}.json`,JSON.stringify(serializeState({includeReferenceData:true}),null,2),'application/json;charset=utf-8'); }
 
   function loadProject(file){
     const reader=new FileReader();
@@ -1916,7 +2177,7 @@
   }
   function resetZoom(){canvas.setAttribute('viewBox','0 0 1400 900');updateZoomButton()}
   function fitContent(){
-    const els=[...state.nodes.map(n=>({x:n.x-50,y:n.y-50,w:100,h:110})),...state.regions.map(r=>regionBounds(r)),...state.ellipses.map(e=>({x:e.x-e.width/2,y:e.y-e.height/2,w:e.width,h:e.height})),...state.arrows.map(a=>({x:Math.min(a.x1,a.x2),y:Math.min(a.y1,a.y2),w:Math.max(20,Math.abs(a.x2-a.x1)),h:Math.max(20,Math.abs(a.y2-a.y1))})),...state.texts.map(t=>({x:t.x,y:t.y-40,w:Math.max(100,(t.text||'').length*24),h:60}))];
+    const els=[...(state.referenceImage?.visible?[{x:state.referenceImage.x,y:state.referenceImage.y,w:state.referenceImage.width,h:state.referenceImage.height}]:[]),...state.nodes.map(n=>({x:n.x-50,y:n.y-50,w:100,h:110})),...state.regions.map(r=>regionBounds(r)),...state.ellipses.map(e=>({x:e.x-e.width/2,y:e.y-e.height/2,w:e.width,h:e.height})),...state.arrows.map(a=>({x:Math.min(a.x1,a.x2),y:Math.min(a.y1,a.y2),w:Math.max(20,Math.abs(a.x2-a.x1)),h:Math.max(20,Math.abs(a.y2-a.y1))})),...state.texts.map(t=>({x:t.x,y:t.y-40,w:Math.max(100,(t.text||'').length*24),h:60}))];
     if(!els.length) return resetZoom();
     const minX=Math.min(...els.map(e=>e.x))-70,minY=Math.min(...els.map(e=>e.y))-70,maxX=Math.max(...els.map(e=>e.x+e.w))+70,maxY=Math.max(...els.map(e=>e.y+e.h))+70;
     const w=maxX-minX,h=maxY-minY,ratio=1400/900;
@@ -1928,7 +2189,7 @@
   function syncMetaControls(){
     $('#metaTitle').value=state.meta?.title||'';$('#metaSubtitle').value=state.meta?.subtitle||'';$('#showRiskMarkers').checked=state.meta?.showRiskMarkers!==false;$('#snapToGrid').checked=isGridEnabled();
     $('#anonymizeToggle').checked=!!state.meta?.anonymize;$('#anonymizeMode').value=state.meta?.anonymizeMode||'code';$('#anonymizeHideNotes').checked=state.meta?.anonymizeHideNotes!==false;
-    $('#touchLongPress').checked=state.meta?.touchLongPress!==false;$('#nudgeStep').value=String(Number(state.meta?.nudgeStep)||2);updateGridVisual();updatePrivacyControls();
+    $('#touchLongPress').checked=state.meta?.touchLongPress!==false;$('#nudgeStep').value=String(Number(state.meta?.nudgeStep)||2);updateGridVisual();updatePrivacyControls();syncReferenceControls();
   }
   function bindMetaInput(selector,key,event='input',transform=v=>v){
     const el=$(selector);let snapped=false;el.addEventListener('focus',()=>{if(!snapped){snapshot();snapped=true;}},{once:true});
@@ -1949,6 +2210,17 @@
   $('#touchLongPress').addEventListener('change',e=>{snapshot();state.meta.touchLongPress=e.target.checked;persist();});
   $('#nudgeStep').addEventListener('change',e=>{snapshot();state.meta.nudgeStep=Number(e.target.value)||2;persist();renderInspector();});
   const versionDialog=$('#versionDialog');$('#versionBtn').addEventListener('click',()=>versionDialog.showModal());$('#closeVersionBtn').addEventListener('click',()=>versionDialog.close());
+
+  const reverseTextDialog=$('#reverseTextDialog');
+  $('#reverseTextBtn').addEventListener('click',openReverseText);$('#reverseTextSideBtn').addEventListener('click',openReverseText);$('#closeReverseTextBtn').addEventListener('click',()=>reverseTextDialog.close());$('#refreshReverseTextBtn').addEventListener('click',refreshReverseText);$('#reverseFormat').addEventListener('change',refreshReverseText);['#reverseIncludeNotes','#reverseIncludeRisk','#reverseIncludeVisuals','#reverseAnonymize'].forEach(sel=>$(sel).addEventListener('change',refreshReverseText));$('#copyReverseTextBtn').addEventListener('click',copyReverseText);$('#downloadReverseTextBtn').addEventListener('click',()=>download(`家系圖文字_V${APP_VERSION}.txt`,$('#reverseTextOutput').value,'text/plain;charset=utf-8'));$('#useReverseAsInputBtn').addEventListener('click',()=>{$('#quickInput').value=$('#reverseTextOutput').value;reverseTextDialog.close();showToast('已放入左側文字輸入框，原家系圖未變更');});
+  $('#referenceImageInput').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)importReferenceImage(file);e.target.value='';});
+  $('#referenceVisible').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.visible=e.target.checked;render();persist();syncReferenceControls();});
+  $('#referenceLocked').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.locked=e.target.checked;if(e.target.checked&&state.selected?.kind==='reference')state.selected=null;render();persist();syncReferenceControls();});
+  let refOpacitySnap=false;$('#referenceOpacity').addEventListener('pointerdown',()=>{if(!refOpacitySnap){snapshot();refOpacitySnap=true;}});$('#referenceOpacity').addEventListener('input',e=>{if(!state.referenceImage)return;state.referenceImage.opacity=Number(e.target.value)/100;redrawReferenceOnly();$('#referenceOpacityValue').textContent=`${e.target.value}%`;schedulePersist();});$('#referenceOpacity').addEventListener('change',()=>{refOpacitySnap=false;});
+  let refScaleSnap=false;$('#referenceScale').addEventListener('pointerdown',()=>{if(!refScaleSnap){snapshot();refScaleSnap=true;}});$('#referenceScale').addEventListener('input',e=>updateReferenceScale(e.target.value));$('#referenceScale').addEventListener('change',()=>{refScaleSnap=false;});
+  $('#referenceIncludeExport').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.includeInExport=e.target.checked;redrawReferenceOnly();persist();syncReferenceControls();});
+  $('#referenceFitBtn').addEventListener('click',()=>referenceFitToCanvas(true));$('#referenceSelectBtn').addEventListener('click',()=>{const ref=state.referenceImage;if(!ref)return;if(ref.locked){showToast('請先取消「鎖定底圖位置」');return;}selectObject('reference',ref.id);});$('#referenceRemoveBtn').addEventListener('click',()=>{if(!state.referenceImage)return;if(!confirm('確定移除掃描底圖嗎？家系圖物件不會被刪除。'))return;snapshot();state.referenceImage=null;if(state.selected?.kind==='reference')state.selected=null;render();syncReferenceControls();persist();});
+  $$('[data-reference-nudge]').forEach(btn=>btn.addEventListener('click',()=>{const ref=state.referenceImage;if(!ref)return;snapshot();const step=Number(state.meta?.nudgeStep)||2,dir=btn.dataset.referenceNudge;ref.x+=dir==='left'?-step:dir==='right'?step:0;ref.y+=dir==='up'?-step:dir==='down'?step:0;redrawReferenceOnly();redrawSelectionOnly();persist();}));
 
   $('#parseBtn').addEventListener('click',()=>applyParsed($('#quickInput').value));
   $('#sampleBtn').addEventListener('click',()=>{$('#quickInput').value=`個案：女性，80歲，在家照顧\n配偶：男性，已歿\n長男：55歲，婚配三次，第一次配偶58歲，育有1子28歲，第二次無子女，第三次有1女16歲\n次女：50歲，未婚\n三女：48歲，已婚，育有一子(15歲)`;});
@@ -2030,7 +2302,9 @@
   window.__GENOGRAM_DEBUG__={
     version:APP_VERSION,
     getState:()=>JSON.parse(JSON.stringify({...state,selected:null})),
-    repair:()=>{repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);return true;}
+    repair:()=>{repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);return true;},
+    reverseText:(format='compact',options={})=>format==='narrative'?generateNarrativeText(options):format==='list'?generateListText(options):generateCompactText(options),
+    hasReference:()=>!!state.referenceImage
   };
 
 })();
