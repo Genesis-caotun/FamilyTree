@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>家系圖快速製作器 V5.3.1</title>
+<title>家系圖快速製作器 V6.0.0</title>
 <style>
 :root{
     --bg:#f4f6f8;
@@ -182,6 +182,26 @@
 .reverse-output textarea{min-height:410px;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;white-space:pre-wrap}
 .reverse-summary{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 10px;border:1px solid #d7e3ea;border-radius:8px;background:#f7fafc}
 .scan-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#eef7f4;color:#147d64;border:1px solid #b9dfd4;font-size:11px;font-weight:700}
+
+.smart-scan-launch{border-color:#8cb6a9;background:#f3fbf8;color:#106b56}
+.smart-scan-launch:hover{background:#e9f7f2;border-color:#5e9987}
+.smart-scan-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;align-items:start}
+.smart-scan-settings{display:grid;gap:10px;padding:12px;border:1px solid #dbe6e1;border-radius:12px;background:#f8fbfa}
+.smart-scan-preview-wrap{border:1px solid var(--line);border-radius:12px;background:#eef2f4;overflow:auto;min-height:330px;display:grid;place-items:center;padding:10px}
+#smartScanPreview{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,41,55,.08)}
+.smart-scan-results{display:grid;gap:8px;max-height:330px;overflow:auto;padding-right:3px}
+.scan-result-card{display:grid;grid-template-columns:auto 108px minmax(110px,1fr) 82px auto;gap:7px;align-items:center;border:1px solid #dfe6eb;border-radius:10px;padding:8px;background:#fff;font-size:12px}
+.scan-result-card.relation{grid-template-columns:auto 120px minmax(150px,1fr) auto}
+.scan-result-card input,.scan-result-card select{min-width:0;width:100%;padding:6px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.confidence{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#eef3f7;color:#40566a}
+.confidence.high{background:#e8f6f0;color:#147d64}.confidence.medium{background:#fff6dc;color:#8a6200}.confidence.low{background:#fff0ee;color:#a83b31}
+.scan-summary{padding:9px 10px;border:1px solid #d7e3ea;border-radius:9px;background:#f7fafc;font-size:12px;line-height:1.6;color:#40566a}
+.scan-progress{height:7px;border-radius:999px;background:#e6ecef;overflow:hidden}.scan-progress span{display:block;height:100%;width:0;background:#147d64;transition:width .2s ease}
+.scan-privacy{border-left:4px solid #147d64;padding:9px 11px;background:#f2faf7;border-radius:8px;font-size:12px;line-height:1.6;color:#355b50}
+.scan-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed #cfd8df;border-radius:10px;background:#fafcfd}
+.scan-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px;font-size:13px}
+@media (max-width:850px){.smart-scan-grid{grid-template-columns:1fr}.scan-result-card{grid-template-columns:auto 96px minmax(100px,1fr) 70px}.scan-result-card .confidence{grid-column:2/-1;justify-self:start}}
+
 @media (max-width:720px){.reverse-grid{grid-template-columns:1fr}.reverse-output textarea{min-height:330px}}
 @media print{#referenceLayer.reference-not-export{display:none!important}}
 
@@ -193,8 +213,8 @@
     <div class="brand">
       <div class="brand-mark">系</div>
       <div>
-        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V5.3.1</span></h1>
-        <p>台灣社工家系圖排列｜家系圖轉文字｜掃描圖離線描圖｜離線可用</p>
+        <h1>家系圖快速製作器 <span class="version-badge" id="versionBadge">V6.0.0</span></h1>
+        <p>台灣社工家系圖排列｜智慧掃描辨識｜辨識結果人工確認｜離線可用</p>
       </div>
     </div>
     <div class="header-actions">
@@ -246,6 +266,7 @@
         <div class="reference-file-row">
           <label class="btn primary small" for="referenceImageInput">匯入手繪／掃描圖片</label>
           <input class="file-input" id="referenceImageInput" type="file" accept="image/png,image/jpeg,image/webp" />
+          <button class="btn small smart-scan-launch" id="smartScanBtn" type="button">智慧掃描辨識</button>
           <button class="btn small" id="reverseTextSideBtn" type="button">目前圖面轉文字</button>
         </div>
         <div class="reference-controls" id="referenceControls" hidden>
@@ -267,7 +288,7 @@
           </div>
           <label class="check"><input type="checkbox" id="referenceIncludeExport" /> 匯出 SVG／PNG／PDF 時包含掃描底圖</label>
         </div>
-        <p class="hint tool-hint"><strong>本版為離線描圖輔助：</strong>圖片只在目前瀏覽器處理，可調整透明度、大小與位置，再沿著底圖建立人物與關係；本版不會自動辨識手寫文字或符號。正式匯出預設不包含底圖。</p>
+        <p class="hint tool-hint"><strong>V6 智慧辨識：</strong>圖片只在目前瀏覽器處理，可自動找出常見人物符號、服務單位橢圓與部分關係線，再由使用者逐項確認。手寫姓名辨識取決於瀏覽器是否支援本機文字偵測；正式匯出預設不包含底圖。</p>
       </section>
 
       <section class="section">
@@ -454,10 +475,12 @@
 </dialog>
 
 <dialog id="versionDialog">
-  <div class="dialog-head">家系圖快速製作器 V5.3.1</div>
+  <div class="dialog-head">家系圖快速製作器 V6.0.0</div>
   <div class="dialog-body version-dialog-body">
     <p><strong>發布日期：</strong>2026-07-28</p>
     <ul>
+      <li><strong>V6.0.0 智慧掃描辨識：</strong>新增離線影像前處理、常見符號候選偵測、伴侶／親子／服務箭頭關係建議、信心分數與人工確認清單。辨識後可選擇覆蓋或加入目前圖面。</li>
+      <li><strong>V6.0.0 隱私設計：</strong>智慧辨識預設完全在瀏覽器執行，不會自動上傳圖片；瀏覽器支援 TextDetector 時可嘗試本機文字偵測，不支援時仍可手動補正姓名與年齡。</li>
       <li><strong>V5.3.1 服務敘述：</strong>服務單位橢圓與人物以箭頭連接時，逆向文字會自動合併為「某單位提供某人服務」。</li>
       <li><strong>V5.3.0 逆向文字：</strong>可將目前可編輯家系圖輸出為精簡、社工敘述或條列格式，並複製或下載文字檔。</li>
       <li><strong>V5.3.0 掃描圖描圖：</strong>可離線匯入手繪／掃描圖片，調整透明度、縮放與位置後描圖；正式匯出預設排除底圖。</li>
@@ -479,6 +502,37 @@
   <div class="dialog-foot"><button class="btn primary" id="closeVersionBtn">知道了</button></div>
 </dialog>
 
+
+
+<dialog id="smartScanDialog" class="dialog-wide">
+  <div class="dialog-head">V6.0 智慧掃描辨識（Beta）</div>
+  <div class="dialog-body">
+    <div class="scan-privacy"><strong>個資與準確度提醒：</strong>本功能預設只在目前瀏覽器分析圖片，不會自動上傳。自動結果屬草稿，人物性別、親子關係、離婚／分居與手寫內容都必須由使用者確認後再套用。</div>
+    <div class="smart-scan-grid">
+      <div class="smart-scan-settings">
+        <div class="field"><label>黑白判定門檻</label><input type="range" id="scanThreshold" min="110" max="235" step="5" value="185" /><div class="setting-line"><span class="hint">較淡的鉛筆線請調高</span><strong id="scanThresholdValue">185</strong></div></div>
+        <div class="field"><label>最小符號尺寸</label><input type="range" id="scanMinSize" min="14" max="60" step="2" value="24" /><div class="setting-line"><span class="hint">排除文字與小雜點</span><strong id="scanMinSizeValue">24 px</strong></div></div>
+        <label class="check"><input type="checkbox" id="scanDetectRelations" checked /> 建議伴侶、親子與服務連線</label>
+        <label class="check"><input type="checkbox" id="scanUseOcr" checked /> 嘗試瀏覽器本機文字偵測</label>
+        <label class="check"><input type="checkbox" id="scanReplaceExisting" checked /> 套用時取代目前人物與關係</label>
+        <label class="check"><input type="checkbox" id="scanAutoLayout" /> 套用後依社工原則重新排列</label>
+        <button class="btn primary" id="scanAnalyzeBtn" type="button">開始分析掃描圖</button>
+        <div class="scan-progress" aria-hidden="true"><span id="scanProgressBar"></span></div>
+        <div class="scan-summary" id="scanSummary">請先匯入掃描底圖，再按「開始分析掃描圖」。</div>
+      </div>
+      <div>
+        <div class="smart-scan-preview-wrap"><canvas id="smartScanPreview" width="900" height="560" aria-label="智慧掃描辨識預覽"></canvas></div>
+        <div class="scan-section-title"><strong>辨識候選與待確認項目</strong><button class="btn small" id="scanSelectAllBtn" type="button">全部選取／取消</button></div>
+        <div class="smart-scan-results" id="smartScanResults"><div class="scan-empty">尚未分析。</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-foot row wrap">
+    <button class="btn" id="scanReanalyzeBtn" type="button">重新分析</button>
+    <button class="btn" id="closeSmartScanBtn" type="button">取消</button>
+    <button class="btn primary" id="applySmartScanBtn" type="button" disabled>套用已勾選結果</button>
+  </div>
+</dialog>
 
 <dialog id="reverseTextDialog" class="dialog-wide">
   <div class="dialog-head">將目前家系圖轉成文字</div>
@@ -526,12 +580,12 @@
   const toast = $('#toast');
 
   const GRID_SIZE = 20;
-  const APP_VERSION = '5.3.1';
+  const APP_VERSION = '6.0.0';
   const BUILD_DATE = '2026-07-28';
   const EXPORT_PADDING = 70;
 
   const defaultState = () => ({
-    version: 5.3,
+    version: 6.0,
     nodes: [],
     relations: [],
     regions: [],
@@ -559,6 +613,9 @@
   let drawDraft = null;
   const referenceAssets = new Map();
   let quotaWarningShown = false;
+  let smartScanCandidates = [];
+  let smartScanRelations = [];
+  let smartScanContext = null;
 
   const uid = (prefix) => prefix + '_' + Math.random().toString(36).slice(2, 9);
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -645,7 +702,7 @@
     const base=defaultState();
     const legacyRegions=(data.frames||[]).map(f=>normalizeRegion({...f,points:roundedRectRegionPoints(f)}));
     return {
-      ...base, ...data, version:5.3, selected:null,
+      ...base, ...data, version:6.0, selected:null,
       nodes:(data.nodes||[]).map(normalizeNode),
       relations:(data.relations||[]).map(normalizeRelation),
       regions:[...(data.regions||[]).map(normalizeRegion),...legacyRegions],
@@ -2161,6 +2218,157 @@
   function openReverseText(){if(!state.nodes.length)return showToast('目前沒有可轉換的人物資料');$('#reverseAnonymize').checked=!!state.meta?.anonymize;refreshReverseText();$('#reverseTextDialog').showModal();}
   async function copyReverseText(){const text=$('#reverseTextOutput').value;try{await navigator.clipboard.writeText(text);showToast('文字已複製');}catch(e){const el=$('#reverseTextOutput');el.select();document.execCommand('copy');showToast('文字已複製');}}
 
+
+  function setScanProgress(percent){const bar=$('#scanProgressBar');if(bar)bar.style.width=`${clamp(percent,0,100)}%`;}
+  function scanConfidenceClass(value){return value>=.78?'high':value>=.55?'medium':'low';}
+  function scanTypeName(type){return({male:'男性',female:'女性',unknown:'性別未明',pregnancy:'懷孕',loss:'流產／死產',service:'服務單位'}[type]||type);}
+  function loadImageElement(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=src;});}
+  function otsuThreshold(gray){
+    const hist=new Uint32Array(256);for(const v of gray)hist[v]++;
+    const total=gray.length;let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];
+    let sumB=0,wB=0,best=0,bestVar=-1;
+    for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=total-wB;if(!wF)break;sumB+=t*hist[t];const mB=sumB/wB,mF=(sum-sumB)/wF,v=wB*wF*(mB-mF)*(mB-mF);if(v>bestVar){bestVar=v;best=t;}}
+    return best;
+  }
+  function removeLongRuns(ink,w,h,minRun){
+    const work=new Uint8Array(ink),lineMask=new Uint8Array(ink.length);
+    for(let y=0;y<h;y++){let x=0;while(x<w){while(x<w&&!ink[y*w+x])x++;const start=x;while(x<w&&ink[y*w+x])x++;if(x-start>=minRun){for(let k=start;k<x;k++){lineMask[y*w+k]=1;work[y*w+k]=0;}}}}
+    for(let x=0;x<w;x++){let y=0;while(y<h){while(y<h&&!ink[y*w+x])y++;const start=y;while(y<h&&ink[y*w+x])y++;if(y-start>=minRun){for(let k=start;k<y;k++){lineMask[k*w+x]=1;work[k*w+x]=0;}}}}
+    return{shapeInk:work,lineMask};
+  }
+
+  function enclosedWhiteComponents(ink,w,h,minSize){
+    const exterior=new Uint8Array(ink.length),stack=[];
+    const push=(idx)=>{if(idx>=0&&idx<ink.length&&!ink[idx]&&!exterior[idx]){exterior[idx]=1;stack.push(idx);}};
+    for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1);}
+    while(stack.length){const cur=stack.pop(),x=cur%w,y=(cur/w)|0;if(x>0)push(cur-1);if(x<w-1)push(cur+1);if(y>0)push(cur-w);if(y<h-1)push(cur+w);}
+    const seen=new Uint8Array(ink.length),components=[],minHole=Math.max(8,Math.round(minSize*.58));
+    for(let idx=0;idx<ink.length;idx++){
+      if(ink[idx]||exterior[idx]||seen[idx])continue;
+      const q=[idx],pixels=[];seen[idx]=1;let minX=w,minY=h,maxX=0,maxY=0;
+      while(q.length){const cur=q.pop(),x=cur%w,y=(cur/w)|0;pixels.push(cur);if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+        const ns=[cur-1,cur+1,cur-w,cur+w];for(const n of ns){if(n<0||n>=ink.length||seen[n]||ink[n]||exterior[n])continue;const nx=n%w,ny=(n/w)|0;if(Math.abs(nx-x)+Math.abs(ny-y)!==1)continue;seen[n]=1;q.push(n);}
+      }
+      const bw=maxX-minX+1,bh=maxY-minY+1,area=bw*bh;
+      if(bw<minHole||bh<minHole||bw>Math.max(320,minSize*14)||bh>Math.max(240,minSize*11))continue;
+      if(pixels.length<area*.22)continue;
+      components.push({pixels,minX,minY,maxX,maxY,w:bw,h:bh,count:pixels.length,density:pixels.length/area});
+    }
+    return components;
+  }
+  function classifyEnclosedComponent(c,w){
+    const rowMin=new Int32Array(c.h);rowMin.fill(1e9);const rowMax=new Int32Array(c.h);rowMax.fill(-1);
+    for(const idx of c.pixels){const x=idx%w,y=((idx/w)|0)-c.minY,rx=x-c.minX;if(rx<rowMin[y])rowMin[y]=rx;if(rx>rowMax[y])rowMax[y]=rx;}
+    const widths=[];for(let y=0;y<c.h;y++)if(rowMax[y]>=0)widths.push({y,width:rowMax[y]-rowMin[y]+1});
+    const maxW=Math.max(...widths.map(r=>r.width),1),aspect=c.w/c.h;let es=0,ec=0,ed=0,et=0,n=0;
+    for(const r of widths){const yn=c.h<=1?0:(r.y/(c.h-1))*2-1,v=r.width/maxW,circle=Math.sqrt(Math.max(0,1-yn*yn)),diamond=Math.max(0,1-Math.abs(yn)),triangle=clamp((yn+1)/2,0,1);es+=(v-1)*(v-1);ec+=(v-circle)*(v-circle);ed+=(v-diamond)*(v-diamond);et+=(v-triangle)*(v-triangle);n++;}
+    es/=n;ec/=n;ed/=n;et/=n;
+    if(aspect>1.45&&c.w>55&&c.h>22){const confidence=clamp(.9-ec*.9-Math.abs(aspect-2.2)*.035,.48,.96);return{type:'service',error:ec,confidence};}
+    const metrics=[['male',es],['female',ec],['unknown',ed],['pregnancy',et]].sort((a,b)=>a[1]-b[1]);const type=metrics[0][0],error=metrics[0][1],gap=metrics[1][1]-error;
+    if(error>.3)return null;return{type,error,confidence:clamp(.62+gap*2.4-error*.8,.4,.97)};
+  }
+
+  function connectedInkComponents(ink,w,h,minSize){
+    const visited=new Uint8Array(ink.length),components=[],neighbors=[-1,1,-w,w,-w-1,-w+1,w-1,w+1];
+    for(let idx=0;idx<ink.length;idx++){
+      if(!ink[idx]||visited[idx])continue;
+      const stack=[idx],pixels=[];visited[idx]=1;let minX=w,minY=h,maxX=0,maxY=0;
+      while(stack.length){const cur=stack.pop(),x=cur%w,y=(cur/w)|0;pixels.push(cur);if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+        for(const off of neighbors){const n=cur+off;if(n<0||n>=ink.length||visited[n]||!ink[n])continue;const nx=n%w,ny=(n/w)|0;if(Math.abs(nx-x)>1||Math.abs(ny-y)>1)continue;visited[n]=1;stack.push(n);}
+      }
+      const bw=maxX-minX+1,bh=maxY-minY+1,area=bw*bh;
+      if(bw<minSize||bh<minSize||bw>Math.max(260,minSize*10)||bh>Math.max(220,minSize*9))continue;
+      if(pixels.length<Math.max(28,(bw+bh)*.38)||pixels.length>area*.88)continue;
+      components.push({pixels,minX,minY,maxX,maxY,w:bw,h:bh,count:pixels.length,density:pixels.length/area});
+    }
+    return components;
+  }
+  function classifyScanComponent(c,w){
+    const cx=(c.minX+c.maxX)/2,cy=(c.minY+c.maxY)/2,hx=Math.max(1,c.w/2),hy=Math.max(1,c.h/2),aspect=c.w/c.h;
+    let squareErr=0,circleErr=0,diamondErr=0,triangleErr=0;
+    for(const idx of c.pixels){const x=idx%w,y=(idx/w)|0,nx=(x-cx)/hx,ny=(y-cy)/hy,ax=Math.abs(nx),ay=Math.abs(ny);squareErr+=Math.abs(Math.max(ax,ay)-1);circleErr+=Math.abs(Math.hypot(nx,ny)-1);diamondErr+=Math.abs(ax+ay-1);const side=Math.abs(ax-(ny+1)/2),base=Math.abs(ny-1);triangleErr+=Math.min(side,base);}
+    const n=c.pixels.length;squareErr/=n;circleErr/=n;diamondErr/=n;triangleErr/=n;
+    if(aspect>1.48&&c.w>70&&c.h>26&&circleErr<.34&&c.density<.48)return{type:'service',error:circleErr,confidence:clamp(.86-circleErr+(aspect-1.5)*.05,.4,.94)};
+    const metrics=[['male',squareErr],['female',circleErr],['unknown',diamondErr],['pregnancy',triangleErr]].sort((a,b)=>a[1]-b[1]);
+    let type=metrics[0][0],error=metrics[0][1],gap=metrics[1][1]-error;
+    if(type==='pregnancy'&&c.density>.34)type='loss';
+    if(error>.46)return null;
+    const confidence=clamp(.54+gap*1.7+(Math.max(c.w,c.h)>32?.07:0)-error*.42,.32,.96);
+    return{type,error,confidence};
+  }
+  function scanStripDensity(ink,w,h,x1,y1,x2,y2,band=2){
+    const steps=Math.max(1,Math.ceil(Math.hypot(x2-x1,y2-y1))),dx=(x2-x1)/steps,dy=(y2-y1)/steps;let hits=0;
+    for(let i=0;i<=steps;i++){const x=Math.round(x1+dx*i),y=Math.round(y1+dy*i);let found=false;for(let oy=-band;oy<=band&&!found;oy++)for(let ox=-band;ox<=band;ox++){const xx=x+ox,yy=y+oy;if(xx>=0&&xx<w&&yy>=0&&yy<h&&ink[yy*w+xx]){found=true;break;}}if(found)hits++;}
+    return hits/(steps+1);
+  }
+  function scanPartnerStatus(ink,w,h,a,b){
+    const mx=Math.round((a.cx+b.cx)/2),my=Math.round((a.cy+b.cy)/2),r=12;let d1=0,d2=0,total=0;
+    for(let i=-r;i<=r;i++){for(let t=-1;t<=1;t++){const x1=mx+i,y1=my+i+t,x2=mx+i,y2=my-i+t;if(x1>=0&&x1<w&&y1>=0&&y1<h)d1+=ink[y1*w+x1];if(x2>=0&&x2<w&&y2>=0&&y2<h)d2+=ink[y2*w+x2];total++;}}
+    const p1=d1/Math.max(1,total),p2=d2/Math.max(1,total);return p1>.18&&p2>.18?'divorced':Math.max(p1,p2)>.18?'separated':'married';
+  }
+  function proposeScanRelations(candidates,ink,w,h,enabled){
+    if(!enabled)return[];const nodes=candidates.filter(c=>c.type!=='service'),services=candidates.filter(c=>c.type==='service'),rels=[];
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j],dy=Math.abs(a.cy-b.cy),dx=Math.abs(a.cx-b.cx),avg=(a.w+a.h+b.w+b.h)/4;
+      if(dy<avg*.55&&dx>avg*.7&&dx<avg*8){const left=a.cx<b.cx?a:b,right=left===a?b:a,d=scanStripDensity(ink,w,h,left.maxX,left.cy,right.minX,right.cy,2);if(d>.33)rels.push({id:uid('sr'),kind:'relation',type:'partner',status:scanPartnerStatus(ink,w,h,left,right),from:left.id,to:right.id,confidence:clamp(.52+d*.55,.45,.95),checked:true});}
+    }
+    for(const child of nodes){const upper=nodes.filter(p=>p.cy<child.cy-Math.max(35,child.h*.8)&&Math.abs(p.cx-child.cx)<Math.max(220,(child.cy-p.cy)*1.2)).map(p=>{
+        const midY=(p.maxY+child.minY)/2,d1=(scanStripDensity(ink,w,h,p.cx,p.maxY,p.cx,midY,2)+scanStripDensity(ink,w,h,p.cx,midY,child.cx,midY,2)+scanStripDensity(ink,w,h,child.cx,midY,child.cx,child.minY,2))/3;
+        const d2=(scanStripDensity(ink,w,h,p.cx,p.maxY,child.cx,p.maxY,2)+scanStripDensity(ink,w,h,child.cx,p.maxY,child.cx,child.minY,2))/2;return{p,score:Math.max(d1,d2)};
+      }).filter(x=>x.score>.27).sort((a,b)=>b.score-a.score).slice(0,2);
+      upper.forEach(({p,score})=>rels.push({id:uid('sr'),kind:'relation',type:'parent',status:'',from:p.id,to:child.id,confidence:clamp(.45+score*.55,.4,.92),checked:score>.36}));
+    }
+    for(const service of services){const nearby=nodes.map(n=>({n,d:Math.hypot(n.cx-service.cx,n.cy-service.cy)})).sort((a,b)=>a.d-b.d).slice(0,3);for(const {n,d} of nearby){if(d>Math.max(w,h)*.65)continue;const density=scanStripDensity(ink,w,h,service.cx,service.cy,n.cx,n.cy,3);if(density>.2)rels.push({id:uid('sr'),kind:'serviceArrow',type:'serviceArrow',from:service.id,to:n.id,confidence:clamp(.42+density*.65,.38,.9),checked:density>.3});}}
+    const unique=new Map();for(const r of rels){const key=`${r.type}:${r.from}:${r.to}`;if(!unique.has(key)||unique.get(key).confidence<r.confidence)unique.set(key,r);}return[...unique.values()];
+  }
+  async function detectScanText(canvas,candidates,useOcr){
+    if(!useOcr||typeof window.TextDetector!=='function')return{items:[],supported:false};
+    try{const detector=new TextDetector(),items=await detector.detect(canvas);for(const item of items){const b=item.boundingBox||{},cx=(b.x||0)+(b.width||0)/2,cy=(b.y||0)+(b.height||0)/2;const target=candidates.filter(c=>cx>c.minX-c.w*.5&&cx<c.maxX+c.w*.5&&cy>c.minY-c.h*.8&&cy<c.maxY+c.h*1.8).sort((a,b)=>Math.hypot(a.cx-cx,a.cy-cy)-Math.hypot(b.cx-cx,b.cy-cy))[0];if(target){const raw=String(item.rawValue||'').trim(),age=raw.match(/(\d{1,3})\s*歲?/);if(age&&!target.age)target.age=age[1];const name=raw.replace(/\d{1,3}\s*歲?/g,'').replace(/[()（）]/g,'').trim();if(name&&name.length<30&&!target.name)target.name=name;}}return{items,supported:true};}catch(e){return{items:[],supported:false};}
+  }
+  function scanCandidateDefaultName(type,index){return type==='service'?'服務醫院／單位':type==='pregnancy'?'懷孕':type==='loss'?'流產／死產':`${scanTypeName(type)}${index+1}`;}
+  function renderSmartScanPreview(){
+    const c=$('#smartScanPreview'),ctx=c.getContext('2d'),source=smartScanContext?.canvas;if(!source){ctx.clearRect(0,0,c.width,c.height);return;}
+    c.width=source.width;c.height=source.height;ctx.drawImage(source,0,0);ctx.lineWidth=Math.max(2,source.width/450);ctx.font=`${Math.max(12,source.width/75)}px sans-serif`;
+    smartScanCandidates.forEach((x,i)=>{ctx.strokeStyle=x.checked===false?'#98a2b3':x.type==='service'?'#147d64':'#355b7d';ctx.fillStyle=ctx.strokeStyle;ctx.strokeRect(x.minX-3,x.minY-3,x.w+6,x.h+6);ctx.fillText(`${i+1}.${scanTypeName(x.type)} ${Math.round(x.confidence*100)}%`,x.minX,Math.max(14,x.minY-7));});
+    smartScanRelations.filter(r=>r.checked!==false).forEach(r=>{const a=smartScanCandidates.find(c=>c.id===r.from),b=smartScanCandidates.find(c=>c.id===r.to);if(!a||!b)return;ctx.strokeStyle=r.type==='serviceArrow'?'#147d64':'#b36b00';ctx.beginPath();ctx.moveTo(a.cx,a.cy);ctx.lineTo(b.cx,b.cy);ctx.stroke();});
+  }
+  function renderSmartScanResults(){
+    const host=$('#smartScanResults');if(!smartScanCandidates.length){host.innerHTML='<div class="scan-empty">沒有找到可用的符號候選。請調高黑白門檻、降低最小符號尺寸，或改用較清楚的正面掃描圖。</div>';$('#applySmartScanBtn').disabled=true;return;}
+    const typeOptions=['male','female','unknown','pregnancy','loss','service'];
+    let html='<div class="scan-section-title"><strong>人物／圖樣候選</strong><span class="hint">可修改類型、名稱與年齡</span></div>';
+    html+=smartScanCandidates.map((c,i)=>`<div class="scan-result-card" data-scan-candidate="${c.id}"><input type="checkbox" data-scan-k="checked" ${c.checked!==false?'checked':''} aria-label="使用候選 ${i+1}"><select data-scan-k="type">${typeOptions.map(t=>`<option value="${t}" ${c.type===t?'selected':''}>${scanTypeName(t)}</option>`).join('')}</select><input data-scan-k="name" value="${esc(c.name||'')}" placeholder="姓名／單位名稱"><input data-scan-k="age" value="${esc(c.age||'')}" placeholder="年齡" ${c.type==='service'?'disabled':''}><span class="confidence ${scanConfidenceClass(c.confidence)}">${Math.round(c.confidence*100)}%</span></div>`).join('');
+    if(smartScanRelations.length){html+='<div class="scan-section-title"><strong>關係建議</strong><span class="hint">請逐筆核對</span></div>';html+=smartScanRelations.map(r=>{const a=smartScanCandidates.find(c=>c.id===r.from),b=smartScanCandidates.find(c=>c.id===r.to),label=`${a?.name||scanTypeName(a?.type)} → ${b?.name||scanTypeName(b?.type)}`;return`<div class="scan-result-card relation" data-scan-relation="${r.id}"><input type="checkbox" data-scan-rel-k="checked" ${r.checked!==false?'checked':''}><select data-scan-rel-k="type">${[['partner','婚姻／伴侶'],['parent','親子'],['serviceArrow','服務箭頭'],['ignore','不套用']].map(([v,l])=>`<option value="${v}" ${r.type===v?'selected':''}>${l}</option>`).join('')}</select><span>${esc(label)}${r.type==='partner'&&r.status!=='married'?`（${r.status==='divorced'?'離婚':'分居'}）`:''}</span><span class="confidence ${scanConfidenceClass(r.confidence)}">${Math.round(r.confidence*100)}%</span></div>`;}).join('');}
+    host.innerHTML=html;$('#applySmartScanBtn').disabled=false;
+    host.querySelectorAll('[data-scan-candidate]').forEach(row=>row.querySelectorAll('[data-scan-k]').forEach(el=>el.addEventListener('input',()=>{const c=smartScanCandidates.find(x=>x.id===row.dataset.scanCandidate);if(!c)return;const k=el.dataset.scanK;c[k]=el.type==='checkbox'?el.checked:el.value;if(k==='type'&&c.type==='service')row.querySelector('[data-scan-k="age"]').disabled=true;renderSmartScanPreview();})));
+    host.querySelectorAll('[data-scan-relation]').forEach(row=>row.querySelectorAll('[data-scan-rel-k]').forEach(el=>el.addEventListener('change',()=>{const r=smartScanRelations.find(x=>x.id===row.dataset.scanRelation);if(!r)return;const k=el.dataset.scanRelK;r[k]=el.type==='checkbox'?el.checked:el.value;renderSmartScanPreview();})));
+  }
+  async function analyzeSmartScan(){
+    const ref=state.referenceImage,href=referenceImageHref();if(!ref||!href)return showToast('請先匯入手繪／掃描圖片');
+    const btn=$('#scanAnalyzeBtn');btn.disabled=true;$('#scanReanalyzeBtn').disabled=true;setScanProgress(8);$('#scanSummary').textContent='正在讀取圖片與建立黑白分析圖…';
+    try{
+      const img=await loadImageElement(href),maxDim=1000,scale=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));const ctx=c.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);setScanProgress(22);
+      const data=ctx.getImageData(0,0,c.width,c.height).data,gray=new Uint8Array(c.width*c.height);for(let i=0,j=0;i<data.length;i+=4,j++)gray[j]=Math.round(data[i]*.299+data[i+1]*.587+data[i+2]*.114);
+      const manual=Number($('#scanThreshold').value)||185,auto=otsuThreshold(gray),threshold=Math.round(manual*.72+auto*.28),ink=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)ink[i]=gray[i]<threshold?1:0;setScanProgress(38);
+      const minSize=Math.max(10,Number($('#scanMinSize').value)||24),holes=enclosedWhiteComponents(ink,c.width,c.height,minSize),candidates=[];
+      for(const hole of holes){const cls=classifyEnclosedComponent(hole,c.width);if(!cls||cls.confidence<.38)continue;const pad=Math.max(3,Math.round(Math.min(hole.w,hole.h)*.07)),minX=Math.max(0,hole.minX-pad),minY=Math.max(0,hole.minY-pad),maxX=Math.min(c.width-1,hole.maxX+pad),maxY=Math.min(c.height-1,hole.maxY+pad),id=uid('sc'),index=candidates.length;candidates.push({minX,minY,maxX,maxY,w:maxX-minX+1,h:maxY-minY+1,...cls,id,kind:'candidate',cx:(minX+maxX)/2,cy:(minY+maxY)/2,name:scanCandidateDefaultName(cls.type,index),age:'',checked:cls.confidence>=.43});}
+      const filled=connectedInkComponents(ink,c.width,c.height,Math.max(14,minSize)).filter(comp=>comp.density>.38&&comp.w<minSize*4&&comp.h<minSize*4);
+      for(const comp of filled){const cls=classifyScanComponent(comp,c.width);if(!cls||cls.type!=='loss'||cls.confidence<.5)continue;if(candidates.some(x=>Math.hypot(x.cx-(comp.minX+comp.maxX)/2,x.cy-(comp.minY+comp.maxY)/2)<Math.max(comp.w,comp.h)))continue;const id=uid('sc'),index=candidates.length;candidates.push({minX:comp.minX,minY:comp.minY,maxX:comp.maxX,maxY:comp.maxY,w:comp.w,h:comp.h,type:'loss',confidence:cls.confidence,id,kind:'candidate',cx:(comp.minX+comp.maxX)/2,cy:(comp.minY+comp.maxY)/2,name:scanCandidateDefaultName('loss',index),age:'',checked:true});}
+      candidates.sort((a,b)=>a.cy-b.cy||a.cx-b.cx);setScanProgress(58);
+      const ocr=await detectScanText(c,candidates,$('#scanUseOcr').checked);setScanProgress(72);
+      const relations=proposeScanRelations(candidates,ink,c.width,c.height,$('#scanDetectRelations').checked);smartScanCandidates=candidates;smartScanRelations=relations;smartScanContext={canvas:c,ink,width:c.width,height:c.height,threshold,ocrSupported:ocr.supported};
+      renderSmartScanPreview();renderSmartScanResults();const low=candidates.filter(x=>x.confidence<.55).length,ocrText=ocr.supported?`瀏覽器文字偵測已執行，共找到 ${ocr.items.length} 段文字。`:'此瀏覽器不支援本機 TextDetector，姓名與年齡請在清單手動補正。';$('#scanSummary').textContent=`找到 ${candidates.length} 個人物／圖樣候選、${relations.length} 筆關係建議；其中 ${low} 個信心較低。${ocrText}`;setScanProgress(100);
+    }catch(e){console.error(e);$('#scanSummary').textContent='分析失敗：圖片格式或瀏覽器記憶體不足。請改用較小的 JPG／PNG。';showToast('智慧掃描分析失敗');setScanProgress(0);}finally{btn.disabled=false;$('#scanReanalyzeBtn').disabled=false;}
+  }
+  function applySmartScan(){
+    const selected=smartScanCandidates.filter(c=>c.checked!==false);if(!selected.length)return showToast('請至少勾選一個辨識候選');const ref=state.referenceImage,ctx=smartScanContext;if(!ref||!ctx)return;
+    snapshot();if($('#scanReplaceExisting').checked){state.nodes=[];state.relations=[];state.regions=[];state.ellipses=[];state.arrows=[];state.texts=[];}
+    const map=new Map(),sx=ref.width/ctx.width,sy=ref.height/ctx.height;
+    for(const c of selected){const x=ref.x+c.cx*sx,y=ref.y+c.cy*sy;if(c.type==='service'){const e=normalizeEllipse({id:uid('e'),x,y,width:Math.max(120,c.w*sx),height:Math.max(64,c.h*sy),text:c.name||'服務醫院／單位'});state.ellipses.push(e);map.set(c.id,{kind:'service',obj:e});}else{const size=clamp(Math.max(c.w*sx,c.h*sy),42,84),n=normalizeNode({id:uid('n'),x,y,size,sex:c.type,name:c.name||'',age:c.age||'',lossType:c.type==='loss'?'unknown':'unknown'});state.nodes.push(n);map.set(c.id,{kind:'node',obj:n});}}
+    for(const r of smartScanRelations.filter(x=>x.checked!==false&&x.type!=='ignore')){const a=map.get(r.from),b=map.get(r.to);if(!a||!b)continue;if(r.type==='serviceArrow'&&a.kind==='service'&&b.kind==='node'){state.arrows.push(normalizeArrow({id:uid('a'),x1:a.obj.x,y1:a.obj.y,x2:b.obj.x,y2:b.obj.y,color:'#147d64'}));}else if(r.type==='serviceArrow'&&b.kind==='service'&&a.kind==='node'){state.arrows.push(normalizeArrow({id:uid('a'),x1:b.obj.x,y1:b.obj.y,x2:a.obj.x,y2:a.obj.y,color:'#147d64'}));}else if(a.kind==='node'&&b.kind==='node'){state.relations.push(normalizeRelation({id:uid('r'),from:a.obj.id,to:b.obj.id,type:r.type,status:r.type==='partner'?(r.status||'married'):'married',subtype:r.type==='parent'?'biological':''}));}}
+    inferParentUnionIds();state.selected=null;if($('#scanAutoLayout').checked)autoLayout(false);else{render();persist();}$('#smartScanDialog').close();showToast(`已套用 ${selected.length} 個辨識物件，請逐項確認屬性與關係`);
+  }
+  function openSmartScan(){if(!state.referenceImage||!referenceImageHref())return showToast('請先匯入手繪／掃描圖片');smartScanCandidates=[];smartScanRelations=[];smartScanContext=null;$('#smartScanResults').innerHTML='<div class="scan-empty">按「開始分析掃描圖」產生候選。</div>';$('#scanSummary').textContent='辨識結果會先進入人工確認清單，不會直接改動目前家系圖。';$('#applySmartScanBtn').disabled=true;setScanProgress(0);const c=$('#smartScanPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);$('#smartScanDialog').showModal();}
+
   function clearAll(){
     if(!confirm('確定要清空目前家系圖嗎？')) return;
     snapshot(); state=defaultState();render();persist();
@@ -2259,6 +2467,7 @@
   const reverseTextDialog=$('#reverseTextDialog');
   $('#reverseTextBtn').addEventListener('click',openReverseText);$('#reverseTextSideBtn').addEventListener('click',openReverseText);$('#closeReverseTextBtn').addEventListener('click',()=>reverseTextDialog.close());$('#refreshReverseTextBtn').addEventListener('click',refreshReverseText);$('#reverseFormat').addEventListener('change',refreshReverseText);['#reverseIncludeNotes','#reverseIncludeRisk','#reverseIncludeVisuals','#reverseAnonymize'].forEach(sel=>$(sel).addEventListener('change',refreshReverseText));$('#copyReverseTextBtn').addEventListener('click',copyReverseText);$('#downloadReverseTextBtn').addEventListener('click',()=>download(`家系圖文字_V${APP_VERSION}.txt`,$('#reverseTextOutput').value,'text/plain;charset=utf-8'));$('#useReverseAsInputBtn').addEventListener('click',()=>{$('#quickInput').value=$('#reverseTextOutput').value;reverseTextDialog.close();showToast('已放入左側文字輸入框，原家系圖未變更');});
   $('#referenceImageInput').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)importReferenceImage(file);e.target.value='';});
+  const smartScanDialog=$('#smartScanDialog');$('#smartScanBtn').addEventListener('click',openSmartScan);$('#closeSmartScanBtn').addEventListener('click',()=>smartScanDialog.close());$('#scanAnalyzeBtn').addEventListener('click',analyzeSmartScan);$('#scanReanalyzeBtn').addEventListener('click',analyzeSmartScan);$('#applySmartScanBtn').addEventListener('click',applySmartScan);$('#scanThreshold').addEventListener('input',e=>$('#scanThresholdValue').textContent=e.target.value);$('#scanMinSize').addEventListener('input',e=>$('#scanMinSizeValue').textContent=`${e.target.value} px`);$('#scanSelectAllBtn').addEventListener('click',()=>{const allOn=smartScanCandidates.every(c=>c.checked!==false)&&smartScanRelations.every(r=>r.checked!==false);smartScanCandidates.forEach(c=>c.checked=!allOn);smartScanRelations.forEach(r=>r.checked=!allOn);renderSmartScanResults();renderSmartScanPreview();});
   $('#referenceVisible').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.visible=e.target.checked;render();persist();syncReferenceControls();});
   $('#referenceLocked').addEventListener('change',e=>{if(!state.referenceImage)return;snapshot();state.referenceImage.locked=e.target.checked;if(e.target.checked&&state.selected?.kind==='reference')state.selected=null;render();persist();syncReferenceControls();});
   let refOpacitySnap=false;$('#referenceOpacity').addEventListener('pointerdown',()=>{if(!refOpacitySnap){snapshot();refOpacitySnap=true;}});$('#referenceOpacity').addEventListener('input',e=>{if(!state.referenceImage)return;state.referenceImage.opacity=Number(e.target.value)/100;redrawReferenceOnly();$('#referenceOpacityValue').textContent=`${e.target.value}%`;schedulePersist();});$('#referenceOpacity').addEventListener('change',()=>{refOpacitySnap=false;});
@@ -2349,7 +2558,8 @@
     getState:()=>JSON.parse(JSON.stringify({...state,selected:null})),
     repair:()=>{repairMissingCoParentsByGeometry();inferParentUnionIds();autoLayout(false);return true;},
     reverseText:(format='compact',options={})=>format==='narrative'?generateNarrativeText(options):format==='list'?generateListText(options):generateCompactText(options),
-    hasReference:()=>!!state.referenceImage
+    hasReference:()=>!!state.referenceImage,
+    smartScan:()=>({candidates:JSON.parse(JSON.stringify(smartScanCandidates)),relations:JSON.parse(JSON.stringify(smartScanRelations))})
   };
 
 })();
